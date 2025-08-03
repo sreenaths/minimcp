@@ -1,2 +1,3 @@
-# minimcp
-A drop in MCP server for you existing Python applications.
+# MiniMCP
+
+A minimal, stateless, and lightweight **remote Model Context Protocol (MCP) server** designed for easy integration into any Python application.
