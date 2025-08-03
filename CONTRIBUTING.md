@@ -1,6 +1,6 @@
 # MiniMCP
 
-A minimal, stateless, and lightweight **remote Model Context Protocol (MCP) server** designed for easy integration into any Python application.
+A minimal, stateless, and lightweight MCP server designed for easy integration into any Python application.
 
 ## Development
 ### Setup
