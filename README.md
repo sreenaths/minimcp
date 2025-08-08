@@ -8,7 +8,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/minimcp.svg)](https://pypi.org/project/minimcp/)
 </div>
 
-A **minimal, stateless, and lightweight** MCP server designed for easy integration into any Python application. MiniMCP enforces no transport mechanism or session architecture—instead, it provides a simple asynchronous function to handle JSON-RPC messages, letting you choose the rest. By default, it doesn’t use streams; concurrent messages are handled asynchronously, with concurrency support provided by the transport layer. It is built on the [official MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk), enabling standardized context and resource sharing.
+A **minimal, stateless, and lightweight** MCP server designed for easy integration into any Python application. MiniMCP enforces no transport mechanism or session architecture—instead, it provides a simple asynchronous function to handle JSON-RPC 2.0 messages, letting you choose the rest. By default, it doesn’t use streams; concurrent messages are handled asynchronously, with concurrency support provided by the transport layer. It is built on the [official MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk), enabling standardized context and resource sharing.
 
 ### Why MiniMCP?
 
@@ -16,7 +16,7 @@ The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is very pow
 
 But what if you just need a simple MCP server—local or remote—that responds to requests? What if you don’t want the server to dictate the transport mechanism, or you’d like to use your preferred protocol? What if the server cannot be mounted onto the framework your application is built on? What if you don’t need bidirectional messaging or any of the additional features? — ⭕ _The best part is no part._
 
-MiniMCP provides an asynchronous handle function that accepts a JSON-RPC 2.0 message (as a dict or JSON string) and returns a JSON-RPC 2.0 message (as a dict). This allows you to integrate it into your application in whatever way you choose.
+MiniMCP provides an asynchronous handle function that accepts a JSON-RPC message (as a dict or JSON string) and returns a JSON-RPC message (as a dict). This allows you to integrate it into your application in whatever way you choose.
 
 #### Key Features
 - 🔗 Easy to embed into existing servers, CLI tools, or background workers
