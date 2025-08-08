@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- omit in toc -->
-# MiniMCP
+# ✨ MiniMCP
 
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
@@ -16,7 +16,7 @@ The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is very pow
 
 _But what if you just need a simple MCP server (local or remote) that responds to your requests? What if you don’t want the server to dictate the transport mechanism, or you’d like to use your preferred protocol? What if the server cannot be mounted onto the framework your application is built on? What if you don’t need bidirectional messaging or any of the additional features?_
 
-_— The best part is no part._ ✨
+⭕ _The best part is no part._
 
 MiniMCP provides an asynchronous handle function that accepts a JSON-RPC message (as a dict or JSON) and returns a JSON-RPC message (as a dict). This allows you to integrate it into your application in whatever way you choose.
 
