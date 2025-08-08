@@ -6,13 +6,15 @@
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
 [![PyPI version](https://img.shields.io/pypi/v/minimcp.svg)](https://pypi.org/project/minimcp/)
+
+A _**minimal, stateless, and lightweight**_ MCP server for any Python application.
 </div>
 
-A **minimal, stateless, and lightweight** MCP server designed for easy integration into any Python application. MiniMCP enforces no transport mechanism or session architecture—instead, it provides a simple asynchronous function to handle JSON-RPC 2.0 messages, letting you choose the rest. By default, it doesn’t use streams; concurrent messages are handled asynchronously, with concurrency support provided by the transport layer. It is built on the [official MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk), enabling standardized context and resource sharing.
+MiniMCP is designed with simplicity and flexibility in mind and enforces no transport mechanism or session architecture—instead, it provides a simple asynchronous function to handle JSON-RPC 2.0 messages, letting you choose the rest. By default, it doesn’t use streams; concurrent messages are handled asynchronously, with concurrency support provided by the transport layer. It is built on the [official MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk), enabling standardized context and resource sharing.
 
 ### Why MiniMCP?
 
-The [Model Context Protocol (MCP)](https://modelcontextprotocol.io/) is very powerful, and the official MCP Python SDK provides a low-level implementation of the protocol. [FastMCP](https://github.com/jlowin/fastmcp) makes MCP adoption simpler by offering a high-level, Pythonic interface and its own extended capabilities.
+The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is very powerful, it is a new, standardized way to provide context and tools to your LLMs. The official MCP Python SDK provides a low-level implementation of the protocol. [FastMCP](https://github.com/jlowin/fastmcp) makes MCP adoption simpler by offering a high-level, Pythonic interface and its own extended capabilities.
 
 But what if you just need a simple MCP server—local or remote—that responds to requests? What if you don’t want the server to dictate the transport mechanism, or you’d like to use your preferred protocol? What if the server cannot be mounted onto the framework your application is built on? What if you don’t need bidirectional messaging or any of the additional features? — ⭕ _The best part is no part._
 
@@ -20,14 +22,15 @@ MiniMCP provides an asynchronous handle function that accepts a JSON-RPC message
 
 #### Key Features
 - 🔗 Easy to embed into existing servers, CLI tools, or background workers
-- 🛠 Passing and managing context per request
+- 🛠 Passing metadata and managing context per request
 - ⚡ Asynchronous, stateless message processing (stateless between requests)
 - 📝 Easy handler registration for different MCP message types
 - 🧩 Separation of concerns: transport layer is completely separate from message handling
 - 📦 Minimal dependencies—just the official SDK
 
 #### Non-Features
-- 🚫 No built-in session management
+- 🚫 Session management — _Easily build your own with metadata and context_
+- 🚫 Authentication — _Use your existing authentication system_
 - 🚫 No server-initiated messaging
 
 ## Using MiniMCP
@@ -41,15 +44,22 @@ or
 pip install minimcp
 ```
 ### Integration
-Minimal code snippet showing basic tool usage.
+Minimal code snippet showing basic tool usage using FastAPI.
 ```python
-mcp = MiniMCP(name="ServerName", version="0.1.0")
+from fastapi import FastAPI, Request
+from minimcp.server import MiniMCP
+
+app = FastAPI()
+mcp = MiniMCP(name="WeatherServer", version="0.1.0")
 
 @mcp.tool(Tool(...))
-def tool_handler():
+def get_temperature() -> float:
     ...
 
-response = await mcp.handle(client_message)
+@app.post("/mcp")
+async def handle_mcp_request(request: Request):
+    msg = await request.json()
+    return await mcp.handle(msg)
 ```
 
 ## Examples
@@ -59,10 +69,10 @@ uv sync --frozen --all-extras --dev
 ```
 
 ### FastAPI
-The example demos embedding MiniMCP server into a FastAPI application.
+[The example](https://github.com/sreenaths/minimcp/blob/main/examples/servers/fastapi.py) demos embedding MiniMCP server into a FastAPI application.
 ```bash
 uv run uvicorn examples.servers.fastapi:app --reload
 ```
 
 ## License
-[Apache License, Version 2.0](./LICENSE)
+[Apache License, Version 2.0](https://github.com/sreenaths/minimcp/blob/main/LICENSE)
