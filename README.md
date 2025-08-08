@@ -16,12 +16,18 @@ _— The best part is no part._ ✨
 
 MiniMCP provides an asynchronous handle function that accepts a JSON-RPC message (as a dict or JSON) and returns a JSON-RPC message (as a dict). This allows you to integrate it into your application in whatever way you choose.
 
-#### What does MiniMCP provide?
+#### Key Features
 - Easy handler registration for different MCP message types
 - Passing and managing request context between handlers
 - Asynchronous, stateless message processing
 - Separation of concerns: transport layer is completely separate from message handling
 - Minimal dependencies—just the official SDK
+
+## Examples
+FastAPI
+```
+uv run uvicorn examples.servers.fastapi:app --reload
+```
 
 ## Using MiniMCP
 
@@ -32,4 +38,4 @@ pip install minimcp
 ```
 
 ## License
-[Apache 2.0](./LICENSE)
+[Apache License, Version 2.0](./LICENSE)
