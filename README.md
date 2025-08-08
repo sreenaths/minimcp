@@ -14,9 +14,9 @@ MiniMCP is designed with simplicity and flexibility in mind and enforces no tran
 
 ### Why MiniMCP?
 
-The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is very powerful, it is a new, standardized way to provide context and tools to your LLMs. The official MCP Python SDK provides a low-level implementation of the protocol. [FastMCP](https://github.com/jlowin/fastmcp) makes MCP adoption simpler by offering a high-level, Pythonic interface and its own extended capabilities.
+The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is a powerful, standardized way to provide context and tools to your LLMs. The official MCP Python SDK offers a low-level implementation of the protocol, while [FastMCP](https://github.com/jlowin/fastmcp) simplifies adoption with a high-level, Pythonic interface. _However, both require a transport layer that supports bidirectional communication and include additional complexities for managing message streams and sessions._
 
-But what if you just need a simple MCP server—local or remote—that responds to requests? What if you don’t want the server to dictate the transport mechanism, or you’d like to use your preferred protocol? What if the server cannot be mounted onto the framework your application is built on? What if you don’t need bidirectional messaging or any of the additional features? — ⭕ _The best part is no part._
+What if you just need a simple MCP server—local or remote—that responds to requests? What if you don’t want the server to dictate the transport mechanism, or you’d like to use your preferred protocol? What if the server cannot be mounted onto the framework your application is built on? What if you don’t need bidirectional messaging or any of the additional features? — ⭕ _The best part is no part._
 
 MiniMCP provides an asynchronous handle function that accepts a JSON-RPC message (as a dict or JSON string) and returns a JSON-RPC message (as a dict). This allows you to integrate it into your application in whatever way you choose.
 
