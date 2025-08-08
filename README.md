@@ -8,7 +8,7 @@
 [![PyPI version](https://img.shields.io/pypi/v/minimcp.svg)](https://pypi.org/project/minimcp/)
 </div>
 
-A **minimal, stateless, and lightweight** MCP server designed for easy integration into any Python application. MiniMCP enforces no transport mechanism or session architecture—instead, it provides a simple asynchronous function to handle JSON-RPC messages, letting you choose the rest. It doesn’t use streams; instead, concurrent messages are handled primarily through its asynchronous nature. It is built on the [official MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk), enabling standardized context and resource sharing.
+A <strong style="color:OrangeRed">minimal, stateless, and lightweight</strong> MCP server designed for easy integration into any Python application. MiniMCP enforces no transport mechanism or session architecture—instead, it provides a simple asynchronous function to handle JSON-RPC messages, letting you choose the rest. It doesn’t use streams by default; instead, concurrent messages are handled primarily through its asynchronous nature. It is built on the [official MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk), enabling standardized context and resource sharing.
 
 ### Why MiniMCP?
 
