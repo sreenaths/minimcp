@@ -9,6 +9,8 @@ from .exceptions import InvalidMessage
 
 logger = logging.getLogger(__name__)
 
+JSON_RPC_VERSION = "2.0"
+
 
 class MiniMCP:
     _core: ServerCore
@@ -77,10 +79,10 @@ class MiniMCP:
             if response is None:
                 return None
             elif isinstance(response, types.ErrorData):
-                return_msg = types.JSONRPCError(jsonrpc="2.0", id=request_id, error=response)
+                return_msg = types.JSONRPCError(jsonrpc=JSON_RPC_VERSION, id=request_id, error=response)
             else:
                 return_msg = types.JSONRPCResponse(
-                    jsonrpc="2.0",
+                    jsonrpc=JSON_RPC_VERSION,
                     id=request_id,
                     result=response.model_dump(by_alias=True, mode="json", exclude_none=True),
                 )
