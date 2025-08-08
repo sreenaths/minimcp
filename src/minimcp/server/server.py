@@ -25,16 +25,19 @@ class MiniMCP:
         self._core = ServerCore(name=name, version=version, instructions=instructions)
         self._timeout = timeout
 
+        # TODO: Add support for server-to-client notifications
         self._notification_options = NotificationOptions(
             prompts_changed=False,
             resources_changed=False,
             tools_changed=False,
         )
 
-        self._setup_core()
+        self._setup_handlers()
 
-    def _setup_core(self):
+    def _setup_handlers(self):
         self._core.request_handlers[types.InitializeRequest] = self._initialize_handler
+
+        # TODO: Localize decorators - progress_notification, completion, etc.
 
     # --- Handlers ---
     async def handle(self, message: str | dict) -> dict | None:
@@ -92,6 +95,7 @@ class MiniMCP:
 
         # --- Handle notification ---
         elif isinstance(msg_root, types.JSONRPCNotification):
+            # TODO: Add full support for client notification - This just implements the handler, decorators for usage needs to be added.
             client_notification = types.ClientNotification.model_validate(
                 msg_root.model_dump(by_alias=True, mode="json", exclude_none=True)
             )
