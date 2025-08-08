@@ -1,6 +1,7 @@
-from .server_core import ServerCore
+from minimcp.server.server_core import ServerCore, NotificationOptions
 
 import mcp.types as types
+import mcp.shared.version as version
 import logging
 import asyncio
 
@@ -12,6 +13,7 @@ logger = logging.getLogger(__name__)
 class MiniMCP:
     _core: ServerCore
     _timeout: int
+    _notification_options: NotificationOptions | None = None
 
     def __init__(self,
         name: str, version: str | None = None,
@@ -21,6 +23,18 @@ class MiniMCP:
         self._core = ServerCore(name=name, version=version, instructions=instructions)
         self._timeout = timeout
 
+        self._notification_options = NotificationOptions(
+            prompts_changed=False,
+            resources_changed=False,
+            tools_changed=False,
+        )
+
+        self._setup_core()
+
+    def _setup_core(self):
+        self._core.request_handlers[types.InitializeRequest] = self._initialize_handler
+
+    # --- Handlers ---
     async def handle(self, message: str | dict) -> dict | None:
 
         if isinstance(message, str):
@@ -46,12 +60,14 @@ class MiniMCP:
 
     async def _handle_rpc_msg(self, rpc_msg: types.JSONRPCMessage) -> types.JSONRPCMessage | None:
 
+        msg_root = rpc_msg.root
+
         # --- Handle request ---
-        if isinstance(rpc_msg, types.JSONRPCRequest):
-            request_id = rpc_msg.id
+        if isinstance(msg_root, types.JSONRPCRequest):
+            request_id = msg_root.id
 
             client_request = types.ClientRequest.model_validate(
-                rpc_msg.model_dump(by_alias=True, mode="json", exclude_none=True)
+                msg_root.model_dump(by_alias=True, mode="json", exclude_none=True)
             )
 
             logger.info(f"Handling request: {client_request}")
@@ -73,9 +89,9 @@ class MiniMCP:
             return types.JSONRPCMessage(return_msg)
 
         # --- Handle notification ---
-        elif isinstance(rpc_msg, types.JSONRPCNotification):
+        elif isinstance(msg_root, types.JSONRPCNotification):
             client_notification = types.ClientNotification.model_validate(
-                rpc_msg.model_dump(by_alias=True, mode="json", exclude_none=True)
+                msg_root.model_dump(by_alias=True, mode="json", exclude_none=True)
             )
 
             logger.info(f"Handling notification: {client_notification}")
@@ -86,3 +102,24 @@ class MiniMCP:
             err = InvalidMessage("Invalid message: Message to MCP server must be a request or notification")
             logger.error(err)
             raise err
+
+    async def _initialize_handler(self, req: types.InitializeRequest) -> types.ServerResult:
+
+        client_protocol_version = req.params.protocolVersion
+        server_protocol_version = client_protocol_version if client_protocol_version in version.SUPPORTED_PROTOCOL_VERSIONS else types.LATEST_PROTOCOL_VERSION
+
+        init_options = self._core.create_initialization_options(
+            notification_options=self._notification_options,
+        )
+
+        init_result = types.InitializeResult(
+            protocolVersion=server_protocol_version,
+            capabilities=init_options.capabilities,
+            serverInfo=types.Implementation(
+                name=init_options.server_name,
+                version=init_options.server_version,
+            ),
+            instructions=init_options.instructions,
+        )
+
+        return types.ServerResult(init_result)
