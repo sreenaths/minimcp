@@ -1,3 +1,4 @@
+from os import name
 import sys
 import logging
 
@@ -14,8 +15,11 @@ logger = logging.getLogger(__name__)
 
 
 app = FastAPI()
-mcp = MiniMCP(name="WeatherServer", version="0.1.0")
+mcp = MiniMCP(name="MathServer", version="0.1.0")
 
+@mcp.tool(name="add", description="Add two numbers")
+def add(a: int, b: int) -> int:
+    return str(a + b)
 
 @app.post("/mcp")
 async def handle_mcp_request(request: Request):
