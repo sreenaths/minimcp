@@ -58,7 +58,7 @@ import json
 import logging
 import warnings
 from collections.abc import Awaitable, Callable, Iterable
-from typing import Any, TypeAlias, cast
+from typing import Any, cast
 
 import anyio
 import jsonschema
@@ -66,29 +66,16 @@ from pydantic import AnyUrl
 
 import mcp.types as types
 from mcp.server.lowlevel.helper_types import ReadResourceContents  # TODO: Could this be in mcp.types?
+from mcp.server.lowlevel.types import (
+    CombinationContent,
+    NotificationOptions,
+    StructuredContent,
+    UnstructuredContent,
+)
 from mcp.server.models import InitializationOptions
 from mcp.shared.exceptions import McpError
 
 logger = logging.getLogger(__name__)
-
-
-# TODO: Could this be in mcp.types?
-class NotificationOptions:
-    def __init__(
-        self,
-        prompts_changed: bool = False,
-        resources_changed: bool = False,
-        tools_changed: bool = False,
-    ):
-        self.prompts_changed = prompts_changed
-        self.resources_changed = resources_changed
-        self.tools_changed = tools_changed
-
-
-# Type aliases for tool call results
-StructuredContent: TypeAlias = dict[str, Any]
-UnstructuredContent: TypeAlias = Iterable[types.ContentBlock]
-CombinationContent: TypeAlias = tuple[UnstructuredContent, StructuredContent]
 
 
 class ServerCore:
