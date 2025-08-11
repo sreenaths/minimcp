@@ -1,4 +1,5 @@
 from functools import partial
+from typing import Callable
 from minimcp.server.server_core import ServerCore, NotificationOptions
 
 import mcp.types as types
@@ -55,7 +56,7 @@ class MiniMCP:
         return self._core.version
 
     # --- Decorators ---
-    def tool(self, **kwargs: Unpack[ToolDetails]) -> types.Tool:
+    def tool(self, **kwargs: Unpack[ToolDetails]) -> Callable[[Callable], types.Tool]:
         return partial(self.tool_manager.add, **kwargs)
 
     # --- Handlers ---
