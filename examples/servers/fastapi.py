@@ -3,6 +3,7 @@ import sys
 import logging
 
 from fastapi import FastAPI, Request
+from pydantic import Field
 from minimcp.server import MiniMCP
 
 
@@ -18,7 +19,7 @@ app = FastAPI()
 mcp = MiniMCP(name="MathServer", version="0.1.0")
 
 @mcp.tool(name="add", description="Add two numbers")
-def add(a: int, b: int) -> int:
+def add(a: int = Field(..., description="The first number 1"), b: int = Field(..., description="The second number")) -> int:
     return str(a + b)
 
 @app.post("/mcp")
