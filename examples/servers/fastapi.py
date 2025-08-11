@@ -19,8 +19,11 @@ app = FastAPI()
 mcp = MiniMCP(name="MathServer", version="0.1.0")
 
 @mcp.tool(name="add", description="Add two numbers")
-def add(a: int = Field(..., description="The first number 1"), b: int = Field(..., description="The second number")) -> int:
-    return str(a + b)
+def add(
+    a: int = Field(..., description="The first number 1"),
+    b: int = Field(..., description="The second number 2")
+) -> int:
+    return a + b
 
 @app.post("/mcp")
 async def handle_mcp_request(request: Request):
