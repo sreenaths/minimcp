@@ -12,7 +12,7 @@ A _**minimal, stateless, and lightweight**_ MCP server for any Python applicatio
 
 MiniMCP is designed with simplicity and flexibility in mind and enforces no transport mechanism or session architecture—instead, it provides a simple asynchronous function to handle JSON-RPC 2.0 messages, letting you choose the rest. By default, it doesn’t use streams; concurrent messages are handled asynchronously, with concurrency support provided by the transport layer. It is built on the [official MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk), enabling standardized context and resource sharing.
 
-### Why MiniMCP?
+## Why MiniMCP?
 
 The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is a powerful, standardized way to provide context and tools to your LLMs. The official MCP Python SDK offers a low-level implementation of the protocol, while [FastMCP](https://github.com/jlowin/fastmcp) simplifies adoption with a high-level, Pythonic interface. _However, both require a transport layer that supports bidirectional communication and include additional complexities for managing message streams and sessions._
 
@@ -20,7 +20,8 @@ What if you just need a simple MCP server—local or remote—that responds to r
 
 MiniMCP provides an asynchronous handle function that accepts a JSON-RPC message (as a dict or JSON string) and returns a JSON-RPC message (as a dict). This allows you to integrate it into your application in whatever way you choose.
 
-#### Key Features
+### Key Features
+
 - 🔗 Easy to embed into existing servers, CLI tools, or background workers
 - 🛠 Passing metadata and managing context per request
 - ⚡ Asynchronous, stateless message processing (stateless between requests)
@@ -28,7 +29,8 @@ MiniMCP provides an asynchronous handle function that accepts a JSON-RPC message
 - 🧩 Separation of concerns: transport layer is completely separate from message handling
 - 📦 Minimal dependencies—just the official SDK
 
-#### Non-Features
+### Non-Features
+
 - 🚫 Session management — _Easily build your own with metadata and context_
 - 🚫 Authentication — _Use your existing authentication system_
 - 🚫 No server-initiated messaging
@@ -36,15 +38,21 @@ MiniMCP provides an asynchronous handle function that accepts a JSON-RPC message
 ## Using MiniMCP
 
 ### Installation
+
 ```bash
 uv add minimcp
 ```
+
 or
+
 ```bash
 pip install minimcp
 ```
+
 ### Integration
+
 Minimal code snippet showing basic tool usage using FastAPI.
+
 ```python
 from fastapi import FastAPI, Request
 from minimcp.server import MiniMCP
@@ -63,16 +71,21 @@ async def handle_mcp_request(request: Request):
 ```
 
 ## Examples
+
 MiniMCP dev setup is required for running the examples. Once cloned, run the following in MiniMCP project root for a dev setup.
+
 ```bash
 uv sync --frozen --all-extras --dev
 ```
 
 ### FastAPI
+
 [The example](https://github.com/sreenaths/minimcp/blob/main/examples/servers/fastapi.py) demos embedding MiniMCP server into a FastAPI application.
+
 ```bash
 uv run uvicorn examples.servers.fastapi:app --reload
 ```
 
 ## License
+
 [Apache License, Version 2.0](https://github.com/sreenaths/minimcp/blob/main/LICENSE)
