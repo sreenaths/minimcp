@@ -43,7 +43,7 @@ class ToolManager:
             inputSchema=parameters,
             outputSchema= func_meta.output_schema,
             annotations=kwargs.get("annotations", None),
-            meta=kwargs.get("meta", None),
+            _meta=kwargs.get("meta", None),
         )
 
         self._tools[tool_name] = (tool, func, func_meta)
