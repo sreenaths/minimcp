@@ -50,7 +50,7 @@ uv run ruff format .
 ```
 
 6. Update README if you modified example code:
-7. Run pre-commit hooks on all files:
+7. (Optional) Run pre-commit hooks on all files:
 
 ```bash
 uv run pre-commit run --all-files
