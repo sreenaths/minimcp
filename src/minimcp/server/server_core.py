@@ -66,14 +66,15 @@ from pydantic import AnyUrl
 
 import mcp.types as types
 from mcp.server.lowlevel.helper_types import ReadResourceContents  # TODO: Could this be in mcp.types?
-from mcp.server.lowlevel.types import (
+from mcp.server.models import InitializationOptions
+from mcp.shared.exceptions import McpError
+from minimcp.server.types import (
     CombinationContent,
     NotificationOptions,
     StructuredContent,
     UnstructuredContent,
 )
-from mcp.server.models import InitializationOptions
-from mcp.shared.exceptions import McpError
+
 
 logger = logging.getLogger(__name__)
 
