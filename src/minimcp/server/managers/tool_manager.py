@@ -62,6 +62,7 @@ class ToolManager:
     def _hook_core(self, core: ServerCore):
         core.list_tools()(self.list_tools)
         # Validation done by func_meta. Hence passing validate_input=False
+        # TODO: Ensure both the validations are similar
         core.call_tool(validate_input=False)(self._call_tool)
 
     async def list_tools(self) -> list[types.Tool]:
