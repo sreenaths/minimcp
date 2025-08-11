@@ -1,3 +1,4 @@
+from functools import partial
 from minimcp.server.server_core import ServerCore, NotificationOptions
 
 import mcp.types as types
@@ -6,6 +7,8 @@ import logging
 import asyncio
 
 from .exceptions import InvalidMessage
+from .managers.tool_manager import ToolManager, ToolDetails
+from typing_extensions import Unpack
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +25,6 @@ class MiniMCP:
         instructions: str | None = None,
         timeout: int = 30
     ) -> None:
-        self._core = ServerCore(name=name, version=version, instructions=instructions)
         self._timeout = timeout
 
         # TODO: Add support for server-to-client notifications
@@ -32,12 +34,29 @@ class MiniMCP:
             tools_changed=False,
         )
 
-        self._setup_handlers()
-
-    def _setup_handlers(self):
+        # Setup core
+        self._core = ServerCore(name=name, version=version, instructions=instructions)
         self._core.request_handlers[types.InitializeRequest] = self._initialize_handler
 
-        # TODO: Localize decorators - progress_notification, completion, etc.
+        # Setup managers
+        self.tool_manager = ToolManager(self._core) #TODO: Make validate_input configurable
+
+    # --- Properties ---
+    @property
+    def name(self) -> str:
+        return self._core.name
+
+    @property
+    def instructions(self) -> str | None:
+        return self._core.instructions
+
+    @property
+    def version(self) -> str | None:
+        return self._core.version
+
+    # --- Decorators ---
+    def tool(self, **kwargs: Unpack[ToolDetails]) -> types.Tool:
+        return partial(self.tool_manager.add, **kwargs)
 
     # --- Handlers ---
     async def handle(self, message: str | dict) -> dict | None:
