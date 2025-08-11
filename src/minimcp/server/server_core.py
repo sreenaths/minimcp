@@ -62,19 +62,18 @@ from typing import Any, cast
 
 import anyio
 import jsonschema
-from pydantic import AnyUrl
-
 import mcp.types as types
 from mcp.server.lowlevel.helper_types import ReadResourceContents  # TODO: Could this be in mcp.types?
 from mcp.server.models import InitializationOptions
 from mcp.shared.exceptions import McpError
+from pydantic import AnyUrl
+
 from minimcp.server.types import (
     CombinationContent,
     NotificationOptions,
     StructuredContent,
     UnstructuredContent,
 )
-
 
 logger = logging.getLogger(__name__)
 

@@ -1,9 +1,10 @@
 import inspect
 from typing import Any
-from typing_extensions import Unpack, TypedDict
 
 import mcp.types as types
-from mcp.server.fastmcp.utilities.func_metadata import func_metadata, FuncMetadata
+from mcp.server.fastmcp.utilities.func_metadata import FuncMetadata, func_metadata
+from typing_extensions import TypedDict, Unpack
+
 from minimcp.server.server import ServerCore
 
 
@@ -18,6 +19,7 @@ class ToolManager:
     """
     Manages tool definitions and handlers.
     """
+
     _tools: dict[str, tuple[types.Tool, types.AnyFunction, FuncMetadata]]
 
     def __init__(self, core: ServerCore):
@@ -44,7 +46,7 @@ class ToolManager:
             name=tool_name,
             description=kwargs.get("description", func.__doc__),
             inputSchema=parameters,
-            outputSchema= func_meta.output_schema,
+            outputSchema=func_meta.output_schema,
             annotations=kwargs.get("annotations", None),
             _meta=kwargs.get("meta", None),
         )
