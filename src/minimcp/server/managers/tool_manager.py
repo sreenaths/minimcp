@@ -31,6 +31,9 @@ class ToolManager:
 
         tool_name = kwargs.get("name", func.__name__)
 
+        if not tool_name:
+            raise ValueError("Tool name is required")
+
         if tool_name in self._tools:
             raise ValueError(f"Tool {tool_name} already registered")
 

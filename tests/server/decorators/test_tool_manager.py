@@ -15,7 +15,7 @@ class TestToolManager:
     """Test suite for ToolManager class."""
 
     @pytest.fixture
-    def mock_core(self) -> ServerCore:
+    def mock_core(self) -> Mock:
         """Create a mock ServerCore for testing."""
         core = Mock(spec=ServerCore)
         core.list_tools = Mock(return_value=Mock())
@@ -23,11 +23,11 @@ class TestToolManager:
         return core
 
     @pytest.fixture
-    def tool_manager(self, mock_core: ServerCore) -> ToolManager:
+    def tool_manager(self, mock_core: Mock) -> ToolManager:
         """Create a ToolManager instance with mocked core."""
         return ToolManager(mock_core)
 
-    def test_init_hooks_core_methods(self, mock_core: ServerCore):
+    def test_init_hooks_core_methods(self, mock_core: Mock):
         """Test that ToolManager properly hooks into ServerCore methods."""
         tool_manager = ToolManager(mock_core)
 
@@ -66,7 +66,7 @@ class TestToolManager:
         def basic_func(value: int) -> int:
             return value * 2
 
-        custom_annotations = types.ToolAnnotations(category = "math")
+        custom_annotations = types.ToolAnnotations(title="math")
         custom_meta = {"version": "1.0"}
 
         result = tool_manager.add(
@@ -148,12 +148,15 @@ class TestToolManager:
         # This should work since we can give it a different name
         tool_manager.add(same_name_different_func, name="different_name")
 
-        # But this should fail since it uses the function name
-        with pytest.raises(ValueError, match="Tool same_name already registered"):
-            # Create another function with same name
-            def same_name(z: float) -> float:
-                return z
-            tool_manager.add(same_name)
+        def different_scope_same_name():
+            # But this should fail since it uses the function name
+            with pytest.raises(ValueError, match="Tool same_name already registered"):
+                # Create another function with same name
+                def same_name(z: float) -> float:
+                    return z
+                tool_manager.add(same_name)
+
+        different_scope_same_name()
 
     def test_remove_existing_tool(self, tool_manager: ToolManager):
         """Test removing an existing tool."""
@@ -303,13 +306,13 @@ class TestToolManager:
         details: ToolDetails = {
             "name": "test_name",
             "description": "test_description",
-            "annotations": {"category": "test"},
+            "annotations": types.ToolAnnotations(title="test"),
             "meta": {"version": "1.0"}
         }
 
         assert details["name"] == "test_name"
         assert details["description"] == "test_description"
-        assert details["annotations"] == {"category": "test"}
+        assert details["annotations"] == types.ToolAnnotations(title="test")
         assert details["meta"] == {"version": "1.0"}
 
     def test_integration_with_func_metadata(self, tool_manager: ToolManager):
