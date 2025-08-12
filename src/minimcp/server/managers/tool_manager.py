@@ -1,3 +1,4 @@
+import builtins
 import inspect
 from typing import Any
 
@@ -65,15 +66,18 @@ class ToolManager:
         return self._tools.pop(name)[0]
 
     def _hook_core(self, core: ServerCore):
-        core.list_tools()(self.list_tools)
+        core.list_tools()(self._async_list)
         # Validation done by func_meta. Hence passing validate_input=False
         # TODO: Ensure both the validations are similar
-        core.call_tool(validate_input=False)(self._call_tool)
+        core.call_tool(validate_input=False)(self.call)
 
-    async def list_tools(self) -> list[types.Tool]:
+    async def _async_list(self) -> builtins.list[types.Tool]:
+        return self.list()
+
+    def list(self) -> builtins.list[types.Tool]:
         return [tool[0] for tool in self._tools.values()]
 
-    async def _call_tool(self, name: str, args: dict[str, Any]) -> Any:
+    async def call(self, name: str, args: dict[str, Any]) -> Any:
         if name not in self._tools:
             raise ValueError(f"Tool {name} not found")
 
