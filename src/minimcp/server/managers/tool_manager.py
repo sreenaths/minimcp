@@ -67,7 +67,7 @@ class ToolManager:
 
     def _hook_core(self, core: ServerCore):
         core.list_tools()(self._async_list)
-        # Validation done by func_meta. Hence passing validate_input=False
+        # Validation done by func_meta in call. Hence passing validate_input=False
         # TODO: Ensure both the validations are similar
         core.call_tool(validate_input=False)(self.call)
 
@@ -78,6 +78,10 @@ class ToolManager:
         return [tool[0] for tool in self._tools.values()]
 
     async def call(self, name: str, args: dict[str, Any]) -> Any:
+        """
+        Call a tool - Can be called from anywhere.
+        """
+
         if name not in self._tools:
             raise ValueError(f"Tool {name} not found")
 
