@@ -6,7 +6,7 @@ import mcp.types as types
 from mcp.server.fastmcp.utilities.func_metadata import FuncMetadata, func_metadata
 from typing_extensions import TypedDict, Unpack
 
-from minimcp.server.server import ServerCore
+from minimcp.server.server_core import ServerCore
 
 
 class ToolDetails(TypedDict, total=False):
