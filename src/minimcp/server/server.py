@@ -97,7 +97,7 @@ class MiniMCP:
             logger.info(f"Handled request: {client_request}")
 
             if response is None:
-                # Request was cancelled
+                # Request was cancelled - Do nothing
                 return None
             elif isinstance(response, types.ErrorData):
                 return_msg = types.JSONRPCError(jsonrpc=JSON_RPC_VERSION, id=request_id, error=response)
@@ -113,8 +113,7 @@ class MiniMCP:
 
         # --- Handle notification ---
         elif isinstance(msg_root, types.JSONRPCNotification):
-            # TODO: Add full support for client notification - This just implements the handler,
-            # decorators for usage needs to be added.
+            # TODO: Add full support for client notification - This just implements the handler.
             client_notification = types.ClientNotification.model_validate(
                 msg_root.model_dump(by_alias=True, mode="json", exclude_none=True)
             )
