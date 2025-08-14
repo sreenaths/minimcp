@@ -2,14 +2,17 @@ import asyncio
 import logging
 from collections.abc import Callable
 from functools import partial
+from typing import Any
 
 import mcp.shared.version as version
 import mcp.types as types
+from pydantic import ValidationError
 from typing_extensions import Unpack
 
 from minimcp.server.server_core import NotificationOptions, ServerCore
+from minimcp.server.utils import to_dict
 
-from .exceptions import InvalidMessage
+from .exceptions import ErrorWithData, UnsupportedRPCMessageType
 from .managers.tool_manager import ToolDetails, ToolManager
 
 logger = logging.getLogger(__name__)
@@ -59,38 +62,46 @@ class MiniMCP:
         return partial(self.tool_manager.add, **kwargs)
 
     # --- Handlers ---
-    async def handle(self, message: str | dict) -> dict | None:
-        if isinstance(message, str):
-            rpc_msg = types.JSONRPCMessage.model_validate_json(message)
-        elif isinstance(message, dict):
-            rpc_msg = types.JSONRPCMessage.model_validate(message)
-        else:
-            err = InvalidMessage("Invalid message type: Must be a string or dict")
-            logger.error(err)
-            raise err
-
+    async def handle(self, message: dict[str, Any]) -> dict[str, Any] | None:
         try:
+            rpc_msg = types.JSONRPCMessage.model_validate(message)
             response = await asyncio.wait_for(self._handle_rpc_msg(rpc_msg), timeout=self._timeout)
-        except asyncio.TimeoutError:
-            logger.error(f"Handler timed out: {rpc_msg}")
-            raise
+
+        # --- Centralized error handling - All expected exceptions must be handled here ---
+        except ValidationError as e:
+            logger.error("Invalid Message: %s", e)
+            response = self._build_error_msg(types.INVALID_REQUEST, message, e)
+        except UnsupportedRPCMessageType as e:
+            logger.error("Unsupported Message Type: %s", e)
+            response = self._build_error_msg(types.INVALID_REQUEST, message, e)
+        except ErrorWithData as e:
+            logger.error("Error While Handling Message: %s", e)
+            response = self._build_error_msg(types.INTERNAL_ERROR, message, e, e.data)
+        except asyncio.TimeoutError as e:
+            logger.error("Message Handler Timed Out: %s", message)
+            response = self._build_error_msg(types.INTERNAL_ERROR, message, e)
 
         if response is None:
-            logger.info(f"No response returned for message: {rpc_msg}")
+            logger.info(f"No response returned for message: {message}")
             return None
 
-        return response.model_dump(by_alias=True, mode="json", exclude_none=True)
+        return to_dict(response)
+
+    def _build_error_msg(
+        self, error_code: int, message: dict, error: Exception, error_data: types.ErrorData | None = None
+    ) -> types.JSONRPCMessage:
+        message_id = message.get("id", "") if isinstance(message, dict) else ""
+
+        error_data = error_data or types.ErrorData(code=error_code, message=str(error), data=None)
+
+        return types.JSONRPCMessage(types.JSONRPCError(jsonrpc=JSON_RPC_VERSION, id=message_id, error=error_data))
 
     async def _handle_rpc_msg(self, rpc_msg: types.JSONRPCMessage) -> types.JSONRPCMessage | None:
         msg_root = rpc_msg.root
 
         # --- Handle request ---
         if isinstance(msg_root, types.JSONRPCRequest):
-            request_id = msg_root.id
-
-            client_request = types.ClientRequest.model_validate(
-                msg_root.model_dump(by_alias=True, mode="json", exclude_none=True)
-            )
+            client_request = types.ClientRequest.model_validate(to_dict(msg_root))
 
             logger.info(f"Handling request: {client_request}")
             response = await self._core.handle_request(client_request)
@@ -100,32 +111,28 @@ class MiniMCP:
                 # Request was cancelled - Do nothing
                 return None
             elif isinstance(response, types.ErrorData):
-                return_msg = types.JSONRPCError(jsonrpc=JSON_RPC_VERSION, id=request_id, error=response)
-            else:
-                return_msg = types.JSONRPCResponse(
-                    jsonrpc=JSON_RPC_VERSION,
-                    id=request_id,
-                    result=response.model_dump(by_alias=True, mode="json", exclude_none=True),
-                )
+                raise ErrorWithData(response)
 
-            logger.info(f"Returning response: {return_msg}")
-            return types.JSONRPCMessage(return_msg)
+            logger.info(f"Returning response: {response}")
+            return types.JSONRPCMessage(
+                types.JSONRPCResponse(
+                    jsonrpc=JSON_RPC_VERSION,
+                    id=msg_root.id,
+                    result=to_dict(response),
+                )
+            )
 
         # --- Handle notification ---
         elif isinstance(msg_root, types.JSONRPCNotification):
             # TODO: Add full support for client notification - This just implements the handler.
-            client_notification = types.ClientNotification.model_validate(
-                msg_root.model_dump(by_alias=True, mode="json", exclude_none=True)
-            )
+            client_notification = types.ClientNotification.model_validate(to_dict(msg_root))
 
             logger.info(f"Handling notification: {client_notification}")
             await self._core.handle_notification(client_notification)
             logger.info(f"Handled notification: {client_notification}")
             return None
         else:
-            err = InvalidMessage("Invalid message: Message to MCP server must be a request or notification")
-            logger.error(err)
-            raise err
+            raise UnsupportedRPCMessageType("Message to MCP server must be a request or notification")
 
     async def _initialize_handler(self, req: types.InitializeRequest) -> types.ServerResult:
         client_protocol_version = req.params.protocolVersion
