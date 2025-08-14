@@ -97,6 +97,7 @@ class MiniMCP:
             logger.info(f"Handled request: {client_request}")
 
             if response is None:
+                # Request was cancelled
                 return None
             elif isinstance(response, types.ErrorData):
                 return_msg = types.JSONRPCError(jsonrpc=JSON_RPC_VERSION, id=request_id, error=response)
