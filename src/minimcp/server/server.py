@@ -9,6 +9,7 @@ import mcp.types as types
 from pydantic import ValidationError
 from typing_extensions import Unpack
 
+import minimcp.server.json_rpc as json_rpc
 from minimcp.server.server_core import NotificationOptions, ServerCore
 from minimcp.server.utils import to_dict
 
@@ -16,8 +17,6 @@ from .exceptions import ErrorWithData, UnsupportedRPCMessageType
 from .managers.tool_manager import ToolDetails, ToolManager
 
 logger = logging.getLogger(__name__)
-
-JSON_RPC_VERSION = "2.0"
 
 
 class MiniMCP:
@@ -70,31 +69,22 @@ class MiniMCP:
         # --- Centralized error handling - All expected exceptions must be handled here ---
         except ValidationError as e:
             logger.error("Invalid Message: %s", e)
-            response = self._build_error_msg(types.INVALID_REQUEST, message, e)
+            response = json_rpc.build_error_message(types.INVALID_REQUEST, message, e)
         except UnsupportedRPCMessageType as e:
             logger.error("Unsupported Message Type: %s", e)
-            response = self._build_error_msg(types.INVALID_REQUEST, message, e)
+            response = json_rpc.build_error_message(types.INVALID_REQUEST, message, e)
         except ErrorWithData as e:
             logger.error("Error While Handling Message: %s", e)
-            response = self._build_error_msg(types.INTERNAL_ERROR, message, e, e.data)
+            response = json_rpc.build_error_message(types.INTERNAL_ERROR, message, e, e.data)
         except asyncio.TimeoutError as e:
             logger.error("Message Handler Timed Out: %s", message)
-            response = self._build_error_msg(types.INTERNAL_ERROR, message, e)
+            response = json_rpc.build_error_message(types.INTERNAL_ERROR, message, e)
 
         if response is None:
             logger.info(f"No response returned for message: {message}")
             return None
 
         return to_dict(response)
-
-    def _build_error_msg(
-        self, error_code: int, message: dict, error: Exception, error_data: types.ErrorData | None = None
-    ) -> types.JSONRPCMessage:
-        message_id = message.get("id", "") if isinstance(message, dict) else ""
-
-        error_data = error_data or types.ErrorData(code=error_code, message=str(error), data=None)
-
-        return types.JSONRPCMessage(types.JSONRPCError(jsonrpc=JSON_RPC_VERSION, id=message_id, error=error_data))
 
     async def _handle_rpc_msg(self, rpc_msg: types.JSONRPCMessage) -> types.JSONRPCMessage | None:
         msg_root = rpc_msg.root
@@ -114,13 +104,7 @@ class MiniMCP:
                 raise ErrorWithData(response)
 
             logger.info(f"Returning response: {response}")
-            return types.JSONRPCMessage(
-                types.JSONRPCResponse(
-                    jsonrpc=JSON_RPC_VERSION,
-                    id=msg_root.id,
-                    result=to_dict(response),
-                )
-            )
+            return json_rpc.build_response_message(msg_root.id, response)
 
         # --- Handle notification ---
         elif isinstance(msg_root, types.JSONRPCNotification):
