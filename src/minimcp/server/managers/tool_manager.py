@@ -1,5 +1,7 @@
 import builtins
 import inspect
+from collections.abc import Callable
+from functools import partial
 from typing import Any
 
 import mcp.types as types
@@ -26,6 +28,12 @@ class ToolManager:
     def __init__(self, core: ServerCore):
         self._tools = {}
         self._hook_core(core)
+
+    def __call__(self, **kwargs: Unpack[ToolDetails]) -> Callable[[Callable], types.Tool]:
+        """
+        Decorator to add a tool to the MCP tool manager.
+        """
+        return partial(self.add, **kwargs)
 
     def add(self, func: types.AnyFunction, **kwargs: Unpack[ToolDetails]) -> types.Tool:
         """

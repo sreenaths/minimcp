@@ -1,13 +1,10 @@
 import logging
-from collections.abc import Callable
-from functools import partial
 from typing import Any, Generic
 
 import anyio
 import mcp.shared.version as version
 import mcp.types as types
 from pydantic import ValidationError
-from typing_extensions import Unpack
 
 import minimcp.server.json_rpc as json_rpc
 from minimcp.server.lowlevel.core import ServerCore
@@ -16,7 +13,7 @@ from minimcp.server.managers.context_manager import ContextManager, ScopeT
 from minimcp.server.utils import to_dict
 
 from .exceptions import ErrorWithData, UnsupportedRPCMessageType
-from .managers.tool_manager import ToolDetails, ToolManager
+from .managers.tool_manager import ToolManager
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +23,7 @@ class MiniMCP(Generic[ScopeT]):
     _timeout: int
     _notification_options: NotificationOptions | None = None
 
-    tool_manager: ToolManager
+    tool: ToolManager
     context: ContextManager[ScopeT]
 
     def __init__(
@@ -46,7 +43,7 @@ class MiniMCP(Generic[ScopeT]):
         self._core.request_handlers[types.InitializeRequest] = self._initialize_handler
 
         # Setup managers
-        self.tool_manager = ToolManager(self._core)
+        self.tool = ToolManager(self._core)
         self.context = ContextManager()
 
     # --- Properties ---
@@ -61,10 +58,6 @@ class MiniMCP(Generic[ScopeT]):
     @property
     def version(self) -> str | None:
         return self._core.version
-
-    # --- Decorators ---
-    def tool(self, **kwargs: Unpack[ToolDetails]) -> Callable[[Callable], types.Tool]:
-        return partial(self.tool_manager.add, **kwargs)
 
     # --- Handlers ---
     async def handle(self, message: dict[str, Any], scope: ScopeT | None = None) -> dict[str, Any] | None:
