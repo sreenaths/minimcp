@@ -68,7 +68,7 @@ from mcp.server.models import InitializationOptions
 from mcp.shared.exceptions import McpError
 from pydantic import AnyUrl
 
-from minimcp.server.types import (
+from minimcp.server.lowlevel.types import (
     CombinationContent,
     NotificationOptions,
     StructuredContent,

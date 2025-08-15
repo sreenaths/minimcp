@@ -6,8 +6,8 @@ import mcp.types as types
 import pytest
 from pydantic import ValidationError
 
+from minimcp.server.lowlevel.core import ServerCore
 from minimcp.server.managers.tool_manager import ToolDetails, ToolManager
-from minimcp.server.server_core import ServerCore
 
 
 class TestToolManager:

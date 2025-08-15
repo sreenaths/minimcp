@@ -10,7 +10,8 @@ from pydantic import ValidationError
 from typing_extensions import Unpack
 
 import minimcp.server.json_rpc as json_rpc
-from minimcp.server.server_core import NotificationOptions, ServerCore
+from minimcp.server.lowlevel.core import ServerCore
+from minimcp.server.lowlevel.types import NotificationOptions
 from minimcp.server.utils import to_dict
 
 from .exceptions import ErrorWithData, UnsupportedRPCMessageType
