@@ -1,9 +1,9 @@
-import asyncio
 import logging
 from collections.abc import Callable
 from functools import partial
-from typing import Any
+from typing import Any, Generic
 
+import anyio
 import mcp.shared.version as version
 import mcp.types as types
 from pydantic import ValidationError
@@ -12,6 +12,7 @@ from typing_extensions import Unpack
 import minimcp.server.json_rpc as json_rpc
 from minimcp.server.lowlevel.core import ServerCore
 from minimcp.server.lowlevel.types import NotificationOptions
+from minimcp.server.managers.context_manager import ContextManager, ScopeT
 from minimcp.server.utils import to_dict
 
 from .exceptions import ErrorWithData, UnsupportedRPCMessageType
@@ -20,10 +21,13 @@ from .managers.tool_manager import ToolDetails, ToolManager
 logger = logging.getLogger(__name__)
 
 
-class MiniMCP:
+class MiniMCP(Generic[ScopeT]):
     _core: ServerCore
     _timeout: int
     _notification_options: NotificationOptions | None = None
+
+    tool_manager: ToolManager
+    context: ContextManager[ScopeT]
 
     def __init__(
         self, name: str, version: str | None = None, instructions: str | None = None, timeout: int = 30
@@ -42,7 +46,8 @@ class MiniMCP:
         self._core.request_handlers[types.InitializeRequest] = self._initialize_handler
 
         # Setup managers
-        self.tool_manager = ToolManager(self._core)  # TODO: Make validate_input configurable
+        self.tool_manager = ToolManager(self._core)
+        self.context = ContextManager()
 
     # --- Properties ---
     @property
@@ -62,10 +67,13 @@ class MiniMCP:
         return partial(self.tool_manager.add, **kwargs)
 
     # --- Handlers ---
-    async def handle(self, message: dict[str, Any]) -> dict[str, Any] | None:
+    async def handle(self, message: dict[str, Any], scope: ScopeT | None = None) -> dict[str, Any] | None:
         try:
             rpc_msg = types.JSONRPCMessage.model_validate(message)
-            response = await asyncio.wait_for(self._handle_rpc_msg(rpc_msg), timeout=self._timeout)
+
+            with self.context.active(rpc_msg, scope):
+                with anyio.fail_after(self._timeout):
+                    response = await self._handle_rpc_msg(rpc_msg)
 
         # --- Centralized error handling - All expected exceptions must be handled here ---
         except ValidationError as e:
@@ -77,7 +85,7 @@ class MiniMCP:
         except ErrorWithData as e:
             logger.error("Error While Handling Message: %s", e)
             response = json_rpc.build_error_message(types.INTERNAL_ERROR, message, e, e.data)
-        except asyncio.TimeoutError as e:
+        except TimeoutError as e:
             logger.error("Message Handler Timed Out: %s", message)
             response = json_rpc.build_error_message(types.INTERNAL_ERROR, message, e)
 

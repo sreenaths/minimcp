@@ -14,3 +14,9 @@ class ErrorWithData(Exception):
 
     def __init__(self, data: ErrorData):
         self.data = data
+
+
+class ContextError(Exception):
+    """Context error"""
+
+    pass
