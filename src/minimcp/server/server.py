@@ -20,18 +20,39 @@ logger = logging.getLogger(__name__)
 
 class MiniMCP(Generic[ScopeT]):
     _core: ServerCore
-    _timeout: int
     _notification_options: NotificationOptions | None = None
+
+    _timeout: int
+    _max_concurrency: int
 
     tool: ToolManager
     context: ContextManager[ScopeT]
 
     def __init__(
-        self, name: str, version: str | None = None, instructions: str | None = None, timeout: int = 30
+        self,
+        name: str,
+        version: str | None = None,
+        instructions: str | None = None,
+        timeout: int = 30,
+        max_concurrency: int = 10,
     ) -> None:
-        self._timeout = timeout
+        """
+        Initialize the MCP server.
 
-        # TODO: Add support for server-to-client notifications
+        Args:
+            name: The name of the MCP server.
+            version: The version of the MCP server.
+            instructions: The instructions for the MCP server.
+
+            timeout: Time in seconds after which a message handler will timeout.
+            max_concurrency: The maximum number of concurrent message handlers - enforced in handle and run functions.
+        """
+        self._timeout = timeout
+        self._max_concurrency = max_concurrency
+
+        self._limiter = anyio.CapacityLimiter(self._max_concurrency)
+
+        # TODO: Add support for automatic server-to-client notifications
         self._notification_options = NotificationOptions(
             prompts_changed=False,
             resources_changed=False,
@@ -64,9 +85,10 @@ class MiniMCP(Generic[ScopeT]):
         try:
             rpc_msg = types.JSONRPCMessage.model_validate(message)
 
-            with self.context.active(rpc_msg, scope):
+            async with self._limiter:
                 with anyio.fail_after(self._timeout):
-                    response = await self._handle_rpc_msg(rpc_msg)
+                    with self.context.active(rpc_msg, scope):
+                        response = await self._handle_rpc_msg(rpc_msg)
 
         # --- Centralized error handling - All expected exceptions must be handled here ---
         except ValidationError as e:
@@ -80,6 +102,9 @@ class MiniMCP(Generic[ScopeT]):
             response = json_rpc.build_error_message(types.INTERNAL_ERROR, message, e, e.data)
         except TimeoutError as e:
             logger.error("Message Handler Timed Out: %s", message)
+            response = json_rpc.build_error_message(types.INTERNAL_ERROR, message, e)
+        except anyio.get_cancelled_exc_class() as e:
+            logger.info("Message Handler Cancelled: %s", message)
             response = json_rpc.build_error_message(types.INTERNAL_ERROR, message, e)
 
         if response is None:

@@ -12,7 +12,7 @@ def build_response_message(message_id: str | int, response: ServerResult) -> JSO
 
 
 def build_error_message(
-    error_code: int, message: dict[str, Any], error: Exception, error_data: ErrorData | None = None
+    error_code: int, message: dict[str, Any], error: BaseException, error_data: ErrorData | None = None
 ) -> JSONRPCMessage:
     message_id = message.get("id", "") if isinstance(message, dict) else ""
     error_data = error_data or ErrorData(code=error_code, message=str(error), data=None)
