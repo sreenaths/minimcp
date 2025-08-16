@@ -24,6 +24,7 @@ class MiniMCP(Generic[ScopeT]):
 
     _timeout: int
     _max_concurrency: int
+    _raise_exceptions: bool
 
     tool: ToolManager
     context: ContextManager[ScopeT]
@@ -35,6 +36,7 @@ class MiniMCP(Generic[ScopeT]):
         instructions: str | None = None,
         timeout: int = 30,
         max_concurrency: int = 10,
+        raise_exceptions: bool = False,
     ) -> None:
         """
         Initialize the MCP server.
@@ -46,10 +48,12 @@ class MiniMCP(Generic[ScopeT]):
 
             timeout: Time in seconds after which a message handler will timeout.
             max_concurrency: The maximum number of concurrent message handlers - enforced in handle and run functions.
+            raise_exceptions: Whether to raise uncaught exceptions while handling messages.
         """
         self._timeout = timeout
         self._max_concurrency = max_concurrency
 
+        self._raise_exceptions = raise_exceptions
         self._limiter = anyio.CapacityLimiter(self._max_concurrency)
 
         # TODO: Add support for automatic server-to-client notifications
@@ -105,6 +109,11 @@ class MiniMCP(Generic[ScopeT]):
             response = json_rpc.build_error_message(types.INTERNAL_ERROR, message, e)
         except anyio.get_cancelled_exc_class() as e:
             logger.info("Message Handler Cancelled: %s", message)
+            response = json_rpc.build_error_message(types.INTERNAL_ERROR, message, e)
+        except Exception as e:
+            logger.error("Uncaught Exception: %s", e)
+            if self._raise_exceptions:
+                raise
             response = json_rpc.build_error_message(types.INTERNAL_ERROR, message, e)
 
         if response is None:
