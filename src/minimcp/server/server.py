@@ -35,7 +35,7 @@ class MiniMCP(Generic[ScopeT]):
         version: str | None = None,
         instructions: str | None = None,
         timeout: int = 30,
-        max_concurrency: int = 10,
+        max_concurrency: int = 100,
         raise_exceptions: bool = False,
     ) -> None:
         """
@@ -47,7 +47,8 @@ class MiniMCP(Generic[ScopeT]):
             instructions: The instructions for the MCP server.
 
             timeout: Time in seconds after which a message handler will timeout.
-            max_concurrency: The maximum number of concurrent message handlers - enforced in handle and run functions.
+            max_concurrency: The maximum number of message handlers that could be run at
+                the same time, beyond which the handle() calls will be blocked.
             raise_exceptions: Whether to raise uncaught exceptions while handling messages.
         """
         self._timeout = timeout
