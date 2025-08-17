@@ -3,7 +3,7 @@ import sys
 
 from fastapi import FastAPI, Request
 
-from .mcp import math_mcp
+from .math_mcp import math_mcp
 
 # Configure logging globally for the demo server
 logging.basicConfig(level=logging.DEBUG, stream=sys.stdout)
