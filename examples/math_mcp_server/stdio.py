@@ -20,7 +20,6 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.FileHandler(os.environ.get("MCP_SERVER_LOG_FILE", "mcp_server.log")),
-        logging.StreamHandler(),  # Also log to console
     ],
 )
 logger = logging.getLogger(__name__)
