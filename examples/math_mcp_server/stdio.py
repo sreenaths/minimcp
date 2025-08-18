@@ -26,7 +26,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def main(mcp: MiniMCP):
+async def stdio_server(mcp: MiniMCP):
     """
     Server transport for stdio: this communicates with an MCP client by reading
     from the current process' stdin and writing to stdout.
@@ -65,5 +65,9 @@ async def main(mcp: MiniMCP):
         print("\nCtrl+C detected, exiting gracefully...")
 
 
+def main():
+    anyio.run(stdio_server, math_mcp)
+
+
 if __name__ == "__main__":
-    anyio.run(main, math_mcp)
+    main()
