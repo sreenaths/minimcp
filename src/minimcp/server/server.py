@@ -127,6 +127,14 @@ class MiniMCP(Generic[ScopeT]):
     async def handles(
         self, message: str, scope: ScopeT | None = None, raise_json_decode_error: bool = False
     ) -> str | None:
+        """
+        Handle an MCP message as a string.
+
+        Args:
+            message: The message to handle. Must be a valid JSON string in UTF-8 encoding.
+            scope: The scope of the message.
+            raise_json_decode_error: Whether to raise an error if the message is not valid JSON.
+        """
         try:
             message_dict = json.loads(message)
         except json.JSONDecodeError as e:
