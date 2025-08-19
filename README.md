@@ -72,7 +72,7 @@ async def handle_mcp_request(request: Request):
 
 ## Examples
 
-MiniMCP dev setup is required for running the examples. Once cloned, run the following in MiniMCP project root for a dev setup.
+The example demonstrates a [Math MCP server](https://github.com/sreenaths/minimcp/blob/main/examples/math_mcp_server/math_mcp.py) with four tools (add, subtract, multiply, and divide) capable of working across different transport mechanisms. To run the examples, you’ll need a MiniMCP development setup. After cloning this repository, execute the following command from the project root to set up the development environment.
 
 ```bash
 uv sync --frozen --all-extras --dev
@@ -80,10 +80,36 @@ uv sync --frozen --all-extras --dev
 
 ### FastAPI
 
-[The example](https://github.com/sreenaths/minimcp/blob/main/examples/servers/fastapi.py) demos embedding MiniMCP server into a FastAPI application.
+[This example](https://github.com/sreenaths/minimcp/blob/main/examples/math_mcp_server/fastapi.py) demos embedding MiniMCP server into a FastAPI application.
 
 ```bash
-uv run uvicorn examples.servers.fastapi:app --reload
+uv run uvicorn examples.math_mcp_server.fastapi:app --reload
+```
+
+### Stdio
+
+[This example](https://github.com/sreenaths/minimcp/blob/main/examples/math_mcp_server/stdio.py) demos using MiniMCP with stdio.
+
+It can be run in Claude desktop app with the following configuration.
+
+```json
+{
+    "mcpServers":
+    {
+        "math-server":
+        {
+            "command": "uv",
+            "args":
+            [
+                "--directory",
+                "/path/to/minimcp",
+                "run",
+                "-m",
+                "examples.math_mcp_server.stdio"
+            ]
+        }
+    }
+}
 ```
 
 ## License
