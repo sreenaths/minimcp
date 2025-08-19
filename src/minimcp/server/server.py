@@ -5,22 +5,22 @@ from typing import Any, Generic
 import anyio
 import mcp.shared.version as version
 import mcp.types as types
+from mcp.server.lowlevel.server import NotificationOptions, Server
+from mcp.shared.exceptions import McpError
 from pydantic import ValidationError
 
 import minimcp.server.json_rpc as json_rpc
-from minimcp.server.lowlevel.core import ServerCore
-from minimcp.server.lowlevel.types import NotificationOptions
 from minimcp.server.managers.context_manager import ContextManager, ScopeT
 from minimcp.server.utils import to_dict
 
-from .exceptions import ErrorWithData, UnsupportedRPCMessageType
+from .exceptions import UnsupportedRPCMessageType
 from .managers.tool_manager import ToolManager
 
 logger = logging.getLogger(__name__)
 
 
 class MiniMCP(Generic[ScopeT]):
-    _core: ServerCore
+    _core: Server
     _notification_options: NotificationOptions | None = None
 
     _timeout: int
@@ -66,7 +66,7 @@ class MiniMCP(Generic[ScopeT]):
         )
 
         # Setup core
-        self._core = ServerCore(name=name, version=version, instructions=instructions)
+        self._core = Server(name=name, version=version, instructions=instructions)
         self._core.request_handlers[types.InitializeRequest] = self._initialize_handler
 
         # Setup managers
@@ -103,15 +103,15 @@ class MiniMCP(Generic[ScopeT]):
         except UnsupportedRPCMessageType as e:
             logger.error("Unsupported Message Type: %s", e)
             response = json_rpc.build_error_message(types.INVALID_REQUEST, message, e)
-        except ErrorWithData as e:
+        except McpError as e:
             logger.error("Error While Handling Message: %s", e)
-            response = json_rpc.build_error_message(types.INTERNAL_ERROR, message, e, e.data)
+            response = json_rpc.build_error_message(types.INTERNAL_ERROR, message, e, e.error)
         except TimeoutError as e:
             logger.error("Message Handler Timed Out: %s", message)
             response = json_rpc.build_error_message(types.INTERNAL_ERROR, message, e)
-        except anyio.get_cancelled_exc_class() as e:
-            logger.info("Message Handler Cancelled: %s", message)
-            response = json_rpc.build_error_message(types.INTERNAL_ERROR, message, e)
+        except anyio.get_cancelled_exc_class():
+            logger.info("Message Cancelled: %s", message)
+            response = None
         except Exception as e:
             logger.error("Uncaught Exception: %s", e)
             if self._raise_exceptions:
@@ -146,14 +146,12 @@ class MiniMCP(Generic[ScopeT]):
             client_request = types.ClientRequest.model_validate(to_dict(msg_root))
 
             logger.info(f"Handling request: {client_request}")
-            response = await self._core.handle_request(client_request)
+            response = await self._handle_client_request(client_request)
             logger.info(f"Handled request: {client_request}")
 
             if response is None:
                 # Request was cancelled - Do nothing
                 return None
-            elif isinstance(response, types.ErrorData):
-                raise ErrorWithData(response)
 
             logger.info(f"Returning response: {response}")
             return json_rpc.build_response_message(msg_root.id, response)
@@ -164,11 +162,28 @@ class MiniMCP(Generic[ScopeT]):
             client_notification = types.ClientNotification.model_validate(to_dict(msg_root))
 
             logger.info(f"Handling notification: {client_notification}")
-            await self._core.handle_notification(client_notification)
+            await self._handle_client_notification(client_notification)
             logger.info(f"Handled notification: {client_notification}")
             return None
         else:
             raise UnsupportedRPCMessageType("Message to MCP server must be a request or notification")
+
+    async def _handle_client_request(self, request: types.ClientRequest) -> types.ServerResult:
+        if handler := self._core.request_handlers.get(type(request.root)):  # type: ignore
+            logger.debug("Dispatching request of type %s", type(request.root).__name__)
+            return await handler(request.root)
+        else:
+            raise McpError(types.ErrorData(code=types.METHOD_NOT_FOUND, message="Method not found"))
+
+    async def _handle_client_notification(self, notification: types.ClientNotification):
+        notify = notification.root
+        if handler := self._core.notification_handlers.get(type(notify)):  # type: ignore
+            logger.debug("Dispatching notification of type %s", type(notify).__name__)
+
+            try:
+                await handler(notify)
+            except Exception:
+                logger.exception("Uncaught exception in notification handler")
 
     async def _initialize_handler(self, req: types.InitializeRequest) -> types.ServerResult:
         client_protocol_version = req.params.protocolVersion

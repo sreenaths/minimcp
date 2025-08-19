@@ -4,9 +4,9 @@ from unittest.mock import Mock
 
 import mcp.types as types
 import pytest
+from mcp.server.lowlevel.server import Server
 from pydantic import ValidationError
 
-from minimcp.server.lowlevel.core import ServerCore
 from minimcp.server.managers.tool_manager import ToolDetails, ToolManager
 
 
@@ -15,8 +15,8 @@ class TestToolManager:
 
     @pytest.fixture
     def mock_core(self) -> Mock:
-        """Create a mock ServerCore for testing."""
-        core = Mock(spec=ServerCore)
+        """Create a mock Server for testing."""
+        core = Mock(spec=Server)
         core.list_tools = Mock(return_value=Mock())
         core.call_tool = Mock(return_value=Mock())
         return core
@@ -27,7 +27,7 @@ class TestToolManager:
         return ToolManager(mock_core)
 
     def test_init_hooks_core_methods(self, mock_core: Mock):
-        """Test that ToolManager properly hooks into ServerCore methods."""
+        """Test that ToolManager properly hooks into Server methods."""
         tool_manager = ToolManager(mock_core)
 
         # Verify that core methods were called to register handlers

@@ -6,9 +6,8 @@ from typing import Any
 
 import mcp.types as types
 from mcp.server.fastmcp.utilities.func_metadata import FuncMetadata, func_metadata
+from mcp.server.lowlevel.server import Server
 from typing_extensions import TypedDict, Unpack
-
-from minimcp.server.lowlevel.core import ServerCore
 
 
 class ToolDetails(TypedDict, total=False):
@@ -25,7 +24,7 @@ class ToolManager:
 
     _tools: dict[str, tuple[types.Tool, types.AnyFunction, FuncMetadata]]
 
-    def __init__(self, core: ServerCore):
+    def __init__(self, core: Server):
         self._tools = {}
         self._hook_core(core)
 
@@ -73,7 +72,7 @@ class ToolManager:
 
         return self._tools.pop(name)[0]
 
-    def _hook_core(self, core: ServerCore):
+    def _hook_core(self, core: Server):
         core.list_tools()(self._async_list)
         # Validation done by func_meta in call. Hence passing validate_input=False
         # TODO: Ensure both the validations are similar
