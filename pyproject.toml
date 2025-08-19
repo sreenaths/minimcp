@@ -1,6 +1,6 @@
 [project]
 name = "minimcp"
-version = "0.1.0"
+version = "0.2.0"
 description = "A minimal, stateless, and lightweight MCP server designed for easy integration into any Python application."
 authors = [{ name = "Sreenath Somarajapuram", email = "somarajapuram@gmail.com" }]
 readme = "README.md"
