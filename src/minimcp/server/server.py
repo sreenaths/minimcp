@@ -136,7 +136,7 @@ class MiniMCP(Generic[ScopeT]):
         else:
             response = await self.handle(message_dict, scope)
 
-        return json.dumps(response) if response is not None else None
+        return json.dumps(response, ensure_ascii=False) if response is not None else None
 
     async def _handle_rpc_msg(self, rpc_msg: types.JSONRPCMessage) -> types.JSONRPCMessage | None:
         msg_root = rpc_msg.root
