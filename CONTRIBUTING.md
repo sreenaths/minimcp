@@ -68,6 +68,7 @@ uv run pre-commit run --all-files
 ## Build & Publish
 
 ```bash
+rm -rf dist
 uv run -m build
 uv run twine check dist/*
 uv run twine upload dist/*
