@@ -23,8 +23,8 @@ logger = logging.getLogger(__name__)
 
 async def stdio_transport(mcp: MiniMCP):
     """
-    Server transport for stdio: this communicates with an MCP client by reading
-    from the current process' stdin and writing to stdout.
+    stdio_transport interfaces MiniMCP with stdio by reading from
+    the current process stdin and writing to stdout.
     """
 
     stdin = anyio.wrap_file(TextIOWrapper(sys.stdin.buffer, encoding="utf-8"))
