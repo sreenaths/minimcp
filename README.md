@@ -60,7 +60,7 @@ from minimcp.server import MiniMCP
 app = FastAPI()
 mcp = MiniMCP(name="MathServer")
 
-@mcp.tool(name="add", description="Add two numbers")
+@mcp.tool(description="Add two numbers")
 def add(a:int, b:int) -> int:
     return a + b
 
