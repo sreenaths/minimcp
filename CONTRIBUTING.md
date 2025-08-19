@@ -68,9 +68,9 @@ uv run pre-commit run --all-files
 ## Build & Publish
 
 ```bash
-python -m build
-twine check dist/*
-twine upload dist/*
+uv run -m build
+uv run twine check dist/*
+uv run twine upload dist/*
 ```
 
 ## License
