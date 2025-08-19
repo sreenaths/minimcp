@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Any, Generic
 
@@ -95,7 +96,7 @@ class MiniMCP(Generic[ScopeT]):
                     with self.context.active(rpc_msg, scope):
                         response = await self._handle_rpc_msg(rpc_msg)
 
-        # --- Centralized error handling - All expected exceptions must be handled here ---
+        # --- Centralized MCP error handling - All expected exceptions must be handled here ---
         except ValidationError as e:
             logger.error("Invalid Message: %s", e)
             response = json_rpc.build_error_message(types.INVALID_REQUEST, message, e)
@@ -122,6 +123,20 @@ class MiniMCP(Generic[ScopeT]):
             return None
 
         return to_dict(response)
+
+    async def handles(
+        self, message: str, scope: ScopeT | None = None, raise_json_decode_error: bool = False
+    ) -> str | None:
+        try:
+            message_dict = json.loads(message)
+        except json.JSONDecodeError as e:
+            if raise_json_decode_error:
+                raise
+            response = to_dict(json_rpc.build_error_message(types.PARSE_ERROR, {}, e))
+        else:
+            response = await self.handle(message_dict, scope)
+
+        return json.dumps(response)
 
     async def _handle_rpc_msg(self, rpc_msg: types.JSONRPCMessage) -> types.JSONRPCMessage | None:
         msg_root = rpc_msg.root
