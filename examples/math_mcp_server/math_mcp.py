@@ -6,7 +6,9 @@ from pydantic import Field
 
 from minimcp.server import MiniMCP
 
-math_mcp = MiniMCP(name="MathServer", version="0.1.0")
+math_mcp = MiniMCP(
+    name="MathServer", version="0.1.0", instructions="This is a simple MCP server for mathematical operations."
+)
 
 
 @math_mcp.tool(description="Add two numbers")
