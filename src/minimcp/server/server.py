@@ -69,8 +69,6 @@ class MiniMCP(Generic[ScopeT]):
         self._core = Server(name=name, version=version, instructions=instructions)
         self._core.request_handlers[types.InitializeRequest] = self._initialize_handler
         # MiniMCP handles InitializeRequest but not InitializedNotification as it is stateless
-        # TODO: Over HTTP, transport layer could return InitializedNotification with
-        # 202 Accepted status without any body
 
         # Setup managers
         self.tool = ToolManager(self._core)
