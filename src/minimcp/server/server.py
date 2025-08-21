@@ -125,28 +125,6 @@ class MiniMCP(Generic[ScopeT]):
 
         return to_dict(response)
 
-    async def handles(
-        self, message: str, scope: ScopeT | None = None, raise_json_decode_error: bool = False
-    ) -> str | None:
-        """
-        Handle an MCP message as a string.
-
-        Args:
-            message: The message to handle. Must be a valid JSON string in UTF-8 encoding.
-            scope: The scope of the message.
-            raise_json_decode_error: Whether to raise an error if the message is not valid JSON.
-        """
-        try:
-            message_dict = json.loads(message)
-        except json.JSONDecodeError as e:
-            if raise_json_decode_error:
-                raise
-            response = to_dict(json_rpc.build_error_message(types.PARSE_ERROR, {}, e))
-        else:
-            response = await self.handle(message_dict, scope)
-
-        return json.dumps(response, ensure_ascii=False) if response is not None else None
-
     async def _handle_rpc_msg(self, rpc_msg: types.JSONRPCMessage) -> types.JSONRPCMessage | None:
         msg_root = rpc_msg.root
 
