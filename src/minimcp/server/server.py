@@ -1,6 +1,5 @@
-import json
 import logging
-from typing import Any, Generic
+from typing import Generic
 
 import anyio
 import mcp.shared.version as version
@@ -11,9 +10,11 @@ from pydantic import ValidationError
 
 import minimcp.server.json_rpc as json_rpc
 from minimcp.server.managers.context_manager import ContextManager, ScopeT
+from minimcp.server.responder import Responder
+from minimcp.server.types import Message
 from minimcp.server.utils import to_dict
 
-from .exceptions import UnsupportedRPCMessageType
+from .exceptions import ContextError, UnsupportedRPCMessageType
 from .managers.tool_manager import ToolManager
 
 logger = logging.getLogger(__name__)
@@ -88,13 +89,15 @@ class MiniMCP(Generic[ScopeT]):
         return self._core.version
 
     # --- Handlers ---
-    async def handle(self, message: dict[str, Any], scope: ScopeT | None = None) -> dict[str, Any] | None:
+    async def handle(
+        self, message: Message, scope: ScopeT | None = None, responder: Responder | None = None
+    ) -> Message | None:
         try:
             rpc_msg = types.JSONRPCMessage.model_validate(message)
 
             async with self._limiter:
                 with anyio.fail_after(self._timeout):
-                    with self.context.active(rpc_msg, scope):
+                    with self.context.active(rpc_msg, scope, responder):
                         response = await self._handle_rpc_msg(rpc_msg)
 
         # --- Centralized MCP error handling - All expected exceptions must be handled here ---
@@ -113,7 +116,7 @@ class MiniMCP(Generic[ScopeT]):
         except anyio.get_cancelled_exc_class():
             logger.info("Message Cancelled: %s", message)
             response = None
-        except Exception as e:
+        except (Exception, ContextError) as e:
             logger.error("Uncaught Exception: %s", e)
             if self._raise_exceptions:
                 raise

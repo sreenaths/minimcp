@@ -7,6 +7,7 @@ from typing import Generic, TypeVar
 from mcp.types import JSONRPCMessage
 
 from minimcp.server.exceptions import ContextError
+from minimcp.server.responder import Responder
 
 logger = logging.getLogger(__name__)
 
@@ -18,15 +19,16 @@ ScopeT = TypeVar("ScopeT", bound=object)
 class Context(Generic[ScopeT]):
     message: JSONRPCMessage
     scope: ScopeT | None = None
+    responder: Responder | None = None
 
 
 class ContextManager(Generic[ScopeT]):
     _ctx: ContextVar[Context[ScopeT]] = ContextVar("ctx")
 
     @contextmanager
-    def active(self, message: JSONRPCMessage, scope: ScopeT | None = None):
+    def active(self, message: JSONRPCMessage, scope: ScopeT | None = None, responder: Responder | None = None):
         # Build context
-        context = Context(message=message, scope=scope)
+        context = Context(message=message, scope=scope, responder=responder)
 
         # Set context
         token: Token = self._ctx.set(context)
@@ -50,5 +52,11 @@ class ContextManager(Generic[ScopeT]):
     def get_scope(self) -> ScopeT:
         scope = self._get().scope
         if scope is None:
-            raise ContextError("No Scope: Scope is not set in the context")
+            raise ContextError("Scope is not available in current context")
         return scope
+
+    def get_responder(self) -> Responder:
+        responder = self._get().responder
+        if responder is None:
+            raise ContextError("Responder is not available in current context")
+        return responder
