@@ -51,13 +51,6 @@ async def stdio_transport(handler: TransportHandler):
         await write_msg(response)
 
     logger.info("MiniMCP: Started stdio server, listening for messages...")
-
     async with anyio.create_task_group() as tg:
-        try:
-            async for line in stdin:
-                tg.start_soon(handle_message, line)
-        except KeyboardInterrupt:
-            logger.info("Ctrl+C detected, exiting gracefully...")
-            tg.cancel_scope.cancel()
-
-    logger.info("Shutting down stdio server.")
+        async for line in stdin:
+            tg.start_soon(handle_message, line)

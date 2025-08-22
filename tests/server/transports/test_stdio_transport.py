@@ -28,16 +28,6 @@ class AsyncIteratorMock:
             raise StopAsyncIteration
 
 
-class AsyncRaiseKeyboardInterruptMock:
-    """Mock async iterator for testing."""
-
-    def __aiter__(self):
-        raise KeyboardInterrupt()
-
-    async def __anext__(self):
-        raise KeyboardInterrupt()
-
-
 class TestStdioTransport:
     """Test suite for stdio_transport function."""
 
@@ -223,30 +213,6 @@ class TestStdioTransport:
 
                 # Verify both responses were written
                 assert mock_wrapped_stdout.write.call_count == 2
-
-    @pytest.mark.asyncio
-    async def test_keyboard_interrupt_handling(self, caplog):
-        """Test that KeyboardInterrupt from the main loop is handled gracefully."""
-        # We need to test KeyboardInterrupt at the top level, not inside task group
-        with patch("sys.stdout") as mock_stdout, patch("sys.stdin") as mock_stdin:
-            mock_stdout.buffer = Mock()
-            mock_stdin.buffer = Mock()
-
-            mock_wrapped_stdout = AsyncMock()
-            mock_wrapped_stdin = AsyncRaiseKeyboardInterruptMock()
-
-            with patch("anyio.wrap_file") as mock_wrap:
-                mock_wrap.side_effect = [mock_wrapped_stdin, mock_wrapped_stdout]
-
-                mock_handler = AsyncMock()
-
-                # KeyboardInterrupt should be caught and handled gracefully
-                with caplog.at_level(logging.INFO):
-                    await stdio_transport(mock_handler)
-                # Verify the graceful exit message was printed
-
-                assert "Ctrl+C detected, exiting gracefully..." in caplog.text
-                assert "Shutting down stdio server." in caplog.text
 
     @pytest.mark.asyncio
     async def test_logging_behavior(self, sample_message: Message, caplog):
