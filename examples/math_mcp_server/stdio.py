@@ -1,11 +1,11 @@
 import logging
 import os
-import sys
-from io import TextIOWrapper
 
 import anyio
 
-from minimcp.server import MiniMCP
+from minimcp.server.responder import Responder
+from minimcp.server.transports.stdio import stdio_transport
+from minimcp.server.types import Message, MessageSender
 
 from .math_mcp import math_mcp
 
@@ -21,37 +21,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def stdio_transport(mcp: MiniMCP):
-    """
-    stdio_transport interfaces MiniMCP with stdio by reading from
-    the current process stdin and writing to stdout.
-    """
-
-    stdin = anyio.wrap_file(TextIOWrapper(sys.stdin.buffer, encoding="utf-8"))
-    stdout = anyio.wrap_file(TextIOWrapper(sys.stdout.buffer, encoding="utf-8"))
-
-    async def handle_message(line: str):
-        logger.info("Handling incoming message: %s", line)
-
-        response = await mcp.handles(line)
-        if response:
-            logger.info("Writing response message to stdio: %s", response)
-            await stdout.write(response + "\n")
-            await stdout.flush()
-
-    logger.info("MiniMCP: Started stdio server, listening for messages...")
-    try:
-        # stdio is expected to connect the server with one single client,
-        # hence not deploying advanced concurrency management or handling backpressure
-        async with anyio.create_task_group() as tg:
-            async for line in stdin:
-                tg.start_soon(handle_message, line)
-    except (KeyboardInterrupt, anyio.get_cancelled_exc_class()):
-        print("\nCtrl+C detected, exiting gracefully...")
+async def transport_handler(message: Message, sender: MessageSender):
+    # You could do setup (like building scope, creating responder, etc) and teardown in this function.
+    responder = Responder(message, sender)
+    return await math_mcp.handle(message, responder=responder)
 
 
 def main():
-    anyio.run(stdio_transport, math_mcp)
+    anyio.run(stdio_transport, transport_handler)
 
 
 if __name__ == "__main__":
