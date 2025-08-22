@@ -3,9 +3,7 @@ import os
 
 import anyio
 
-from minimcp.server.responder import Responder
 from minimcp.server.transports.stdio import stdio_transport
-from minimcp.server.types import Message, MessageSender
 
 from .math_mcp import math_mcp
 
@@ -21,15 +19,5 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def transport_handler(message: Message, sender: MessageSender):
-    # You could do setup (like building scope, creating responder, etc) and teardown in this function.
-    responder = Responder(message, sender)
-    return await math_mcp.handle(message, responder=responder)
-
-
-def main():
-    anyio.run(stdio_transport, transport_handler)
-
-
 if __name__ == "__main__":
-    main()
+    anyio.run(stdio_transport, math_mcp.handle)

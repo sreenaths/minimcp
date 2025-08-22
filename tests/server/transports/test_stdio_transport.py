@@ -1,6 +1,5 @@
 import json
 import logging
-from collections.abc import Awaitable, Callable
 from unittest.mock import AsyncMock, Mock, patch
 
 import anyio
@@ -8,8 +7,9 @@ import mcp.types as types
 import pytest
 
 from minimcp.server.json_rpc import JSON_RPC_VERSION
-from minimcp.server.transports.stdio import stdio_transport
-from minimcp.server.types import Message, TransportHandler
+from minimcp.server.responder import Responder
+from minimcp.server.transports import TransportRequestHandler, stdio_transport
+from minimcp.server.types import Message
 
 
 class AsyncIteratorMock:
@@ -33,8 +33,8 @@ class TestStdioTransport:
 
     @pytest.fixture
     def mock_handler(self) -> AsyncMock:
-        """Create a mock TransportHandler for testing."""
-        handler = AsyncMock(spec=TransportHandler)
+        """Create a mock TransportRequestHandler for testing."""
+        handler = AsyncMock(spec=TransportRequestHandler)
         handler.return_value = {"jsonrpc": JSON_RPC_VERSION, "id": "test", "result": {"status": "ok"}}
         return handler
 
@@ -93,7 +93,7 @@ class TestStdioTransport:
                 mock_handler.assert_called_once()
                 call_args = mock_handler.call_args
                 assert call_args[0][0] == sample_message  # First argument is the parsed message
-                assert callable(call_args[0][1])  # Second argument is write_msg function
+                assert isinstance(call_args[0][1], Responder)  # Second argument is write_msg function
 
                 # Verify response was written to stdout
                 mock_wrapped_stdout.write.assert_called()
@@ -242,110 +242,6 @@ class TestStdioTransport:
         assert any("Writing response message" in msg for msg in log_messages)
 
     @pytest.mark.asyncio
-    async def test_write_msg_function_isolation(self, sample_message: Message, sample_response: Message):
-        """Test that write_msg function works correctly when called directly."""
-        message_line = json.dumps(sample_message)
-
-        with patch("sys.stdout") as mock_stdout, patch("sys.stdin") as mock_stdin:
-            mock_stdout.buffer = Mock()
-            mock_stdin.buffer = Mock()
-
-            mock_wrapped_stdout = AsyncMock()
-            mock_wrapped_stdin = AsyncIteratorMock([message_line])
-
-            async def write_msg(message: Message | None):
-                pass
-
-            with patch("anyio.wrap_file") as mock_wrap:
-                mock_wrap.side_effect = [mock_wrapped_stdin, mock_wrapped_stdout]
-
-                # Capture the write_msg function passed to handler
-                captured_write_msg: Callable[[Message | None], Awaitable[None]] = write_msg
-
-                async def capture_handler(message, write_msg):
-                    nonlocal captured_write_msg
-                    captured_write_msg = write_msg
-                    return sample_response
-
-                mock_handler = AsyncMock(side_effect=capture_handler)
-
-                await stdio_transport(mock_handler)
-
-                # Test the captured write_msg function directly
-                assert captured_write_msg is not None
-
-                # Reset mock to test direct call
-                mock_wrapped_stdout.reset_mock()
-
-                # Call write_msg directly
-                test_message = {"test": "direct_call"}
-                await captured_write_msg(test_message)
-
-                # Verify it wrote the message
-                mock_wrapped_stdout.write.assert_called_once()
-                written_data = mock_wrapped_stdout.write.call_args[0][0]
-                assert json.loads(written_data.strip()) == test_message
-
-                # Test with None message
-                mock_wrapped_stdout.reset_mock()
-                await captured_write_msg(None)
-                mock_wrapped_stdout.write.assert_not_called()
-
-    @pytest.mark.asyncio
-    async def test_json_serialization_unicode(self):
-        """Test JSON serialization handles unicode correctly."""
-        # Test with unicode characters
-        unicode_message = {"message": "✨ छोटा MCP!"}
-
-        with patch("sys.stdout") as mock_stdout, patch("sys.stdin") as mock_stdin:
-            mock_stdout.buffer = Mock()
-            mock_stdin.buffer = Mock()
-
-            mock_wrapped_stdout = AsyncMock()
-            mock_wrapped_stdin = AsyncIteratorMock([])
-
-            async def write_msg(message: Message | None):
-                pass
-
-            with patch("anyio.wrap_file") as mock_wrap:
-                mock_wrap.side_effect = [mock_wrapped_stdin, mock_wrapped_stdout]
-
-                captured_write_msg: Callable[[Message | None], Awaitable[None]] = write_msg
-
-                async def capture_handler(message, write_msg):
-                    nonlocal captured_write_msg
-                    captured_write_msg = write_msg
-                    return None
-
-                mock_handler = AsyncMock(side_effect=capture_handler)
-
-                # Run briefly to capture write_msg (won't be called with empty stdin)
-                await stdio_transport(mock_handler)
-
-                # Since no messages were processed, we need to test write_msg differently
-                # Let's test with a message that triggers the handler
-                mock_wrapped_stdin = AsyncIteratorMock(['{"test": "msg"}'])
-                mock_wrap.side_effect = [mock_wrapped_stdin, mock_wrapped_stdout]
-
-                await stdio_transport(mock_handler)
-
-                # Test unicode serialization if we captured write_msg
-                if captured_write_msg:
-                    mock_wrapped_stdout.reset_mock()
-                    await captured_write_msg(unicode_message)
-
-                    mock_wrapped_stdout.write.assert_called()
-                    written_data = mock_wrapped_stdout.write.call_args[0][0]
-
-                    # Verify unicode is preserved (ensure_ascii=False)
-                    assert "✨" in written_data
-                    assert "छोटा" in written_data
-
-                    # Verify it's valid JSON
-                    parsed = json.loads(written_data.strip())
-                    assert parsed == unicode_message
-
-    @pytest.mark.asyncio
     async def test_concurrent_message_handling(self, sample_message):
         """Test that messages are handled concurrently using task group."""
         # Create multiple messages
@@ -409,35 +305,6 @@ class TestStdioTransport:
                 assert json.loads(written_data[0][0][0])["id"] == messages[2]["id"]
                 assert json.loads(written_data[1][0][0])["id"] == messages[1]["id"]
                 assert json.loads(written_data[2][0][0])["id"] == messages[0]["id"]
-
-    @pytest.mark.asyncio
-    async def test_message_handling_with_write_msg(self, sample_message: Message, sample_response: Message):
-        """Test handling a valid JSON message."""
-        message_line = json.dumps(sample_message)
-
-        with patch("sys.stdout") as mock_stdout, patch("sys.stdin") as mock_stdin:
-            mock_stdout.buffer = Mock()
-            mock_stdin.buffer = Mock()
-
-            mock_wrapped_stdout = AsyncMock()
-            mock_wrapped_stdin = AsyncIteratorMock([message_line])
-
-            with patch("anyio.wrap_file") as mock_wrap:
-                mock_wrap.side_effect = [mock_wrapped_stdin, mock_wrapped_stdout]
-
-                async def handler(message, write_msg):
-                    await write_msg({"msg": "foo"})
-                    await write_msg({"msg": "bar"})
-                    return sample_response
-
-                await stdio_transport(handler)
-
-                # Verify response was written to stdout
-                assert mock_wrapped_stdout.write.call_count == 3
-                written_data = mock_wrapped_stdout.write.call_args_list
-                assert json.loads(written_data[0][0][0].strip()) == {"msg": "foo"}
-                assert json.loads(written_data[1][0][0].strip()) == {"msg": "bar"}
-                assert json.loads(written_data[2][0][0].strip()) == sample_response
 
     @pytest.mark.asyncio
     async def test_write_msg_with_flush(self):

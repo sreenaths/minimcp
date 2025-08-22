@@ -1,13 +1,16 @@
 import logging
+from collections.abc import Awaitable, Callable
 from operator import attrgetter
 
 import mcp.types as types
 
 from minimcp.server import json_rpc
-from minimcp.server.types import Message, MessageSender
+from minimcp.server.types import Message
 from minimcp.server.utils import to_dict
 
 logger = logging.getLogger(__name__)
+
+MessageSender = Callable[[Message | None], Awaitable[None]]
 
 
 class Responder:
@@ -37,7 +40,8 @@ class Responder:
         Args:
             progress: Current progress value e.g. 24
             total: Optional total value e.g. 100
-            message: Optional message to display to the user
+            message: Optional message to display to the
+            user
 
         Returns:
             The progress token if notification was sent. If not None.

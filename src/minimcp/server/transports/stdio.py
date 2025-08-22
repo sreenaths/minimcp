@@ -7,13 +7,15 @@ import anyio
 import mcp.types as types
 
 from minimcp.server import json_rpc
-from minimcp.server.types import Message, TransportHandler
+from minimcp.server.responder import Responder
+from minimcp.server.transports.types import TransportRequestHandler
+from minimcp.server.types import Message
 from minimcp.server.utils import to_dict
 
 logger = logging.getLogger(__name__)
 
 
-async def stdio_transport(handler: TransportHandler):
+async def stdio_transport(handler: TransportRequestHandler):
     """
     stdio_transport makes it easy to use MiniMCP over stdio.
     - The anyio.wrap_file implimentation naturally apply backpressure.
@@ -46,7 +48,8 @@ async def stdio_transport(handler: TransportHandler):
         except json.JSONDecodeError as e:
             response = to_dict(json_rpc.build_error_message(types.PARSE_ERROR, {}, e))
         else:
-            response = await handler(message_dict, write_msg)
+            responder = Responder(message_dict, write_msg)
+            response = await handler(message_dict, responder)
 
         await write_msg(response)
 

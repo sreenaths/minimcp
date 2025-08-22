@@ -90,7 +90,7 @@ class MiniMCP(Generic[ScopeT]):
 
     # --- Handlers ---
     async def handle(
-        self, message: Message, scope: ScopeT | None = None, responder: Responder | None = None
+        self, message: Message, responder: Responder | None = None, scope: ScopeT | None = None
     ) -> Message | None:
         try:
             rpc_msg = types.JSONRPCMessage.model_validate(message)
