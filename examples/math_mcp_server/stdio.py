@@ -20,4 +20,5 @@ logger = logging.getLogger(__name__)
 
 
 if __name__ == "__main__":
+    logger.info("MiniMCP: Started stdio server, listening for messages...")
     anyio.run(stdio_transport, math_mcp.handle)

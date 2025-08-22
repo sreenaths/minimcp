@@ -237,7 +237,6 @@ class TestStdioTransport:
 
         # Check that expected log messages were generated
         log_messages = [record.message for record in caplog.records]
-        assert any("Started stdio server" in msg for msg in log_messages)
         assert any("Handling incoming message" in msg for msg in log_messages)
         assert any("Writing response message" in msg for msg in log_messages)
 

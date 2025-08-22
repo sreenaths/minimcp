@@ -53,7 +53,6 @@ async def stdio_transport(handler: TransportRequestHandler):
 
         await write_msg(response)
 
-    logger.info("MiniMCP: Started stdio server, listening for messages...")
     async with anyio.create_task_group() as tg:
         async for line in stdin:
             tg.start_soon(handle_message, line)
