@@ -78,12 +78,12 @@ The example demonstrates a [Math MCP server](https://github.com/sreenaths/minimc
 uv sync --frozen --all-extras --dev
 ```
 
-### FastAPI
+### FastAPI + HTTP
 
-[This example](https://github.com/sreenaths/minimcp/blob/main/examples/math_mcp_server/fastapi.py) demos embedding MiniMCP server into a FastAPI application.
+[This example](https://github.com/sreenaths/minimcp/blob/main/examples/math_mcp_server/fastapi_http.py) demos embedding MiniMCP server into a FastAPI application.
 
 ```bash
-uv run uvicorn examples.math_mcp_server.fastapi:app --reload
+uv run uvicorn examples.math_mcp_server.fastapi_http:app --reload
 ```
 
 ### Stdio
