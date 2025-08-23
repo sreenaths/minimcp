@@ -3,9 +3,7 @@ import os
 
 import anyio
 
-from minimcp.server.responder import Responder
-from minimcp.server.transports.stdio import stdio_transport
-from minimcp.server.types import Message
+from minimcp import Message, Responder, stdio_transport
 
 from .math_mcp import math_mcp
 

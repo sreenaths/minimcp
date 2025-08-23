@@ -4,7 +4,7 @@ A simple MCP server for mathematical operations.
 
 from pydantic import Field
 
-from minimcp.server import MiniMCP
+from minimcp import MiniMCP
 
 math_mcp = MiniMCP(
     name="MathServer", version="0.1.0", instructions="This is a simple MCP server for mathematical operations."

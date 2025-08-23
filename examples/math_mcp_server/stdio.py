@@ -3,7 +3,7 @@ import os
 
 import anyio
 
-from minimcp.server.transports.stdio import stdio_transport
+from minimcp import stdio_transport
 
 from .math_mcp import math_mcp
 

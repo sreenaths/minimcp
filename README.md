@@ -51,11 +51,11 @@ pip install minimcp
 
 ### Integration
 
-Minimal code snippet showing basic tool usage using FastAPI.
+Minimal code snippet showing basic tool usage using HTTP with FastAPI.
 
 ```python
 from fastapi import FastAPI, Request
-from minimcp.server import MiniMCP
+from minimcp import MiniMCP
 
 app = FastAPI()
 mcp = MiniMCP(name="MathServer")
@@ -78,7 +78,7 @@ The example demonstrates a [Math MCP server](https://github.com/sreenaths/minimc
 uv sync --frozen --all-extras --dev
 ```
 
-### FastAPI + HTTP
+### HTTP with FastAPI
 
 [This example](https://github.com/sreenaths/minimcp/blob/main/examples/math_mcp_server/fastapi_http.py) demos embedding MiniMCP server into a FastAPI application.
 
