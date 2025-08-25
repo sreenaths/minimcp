@@ -70,27 +70,58 @@ async def handle_mcp_request(request: Request):
     return await mcp.handle(msg)
 ```
 
+## Transports
+
+The official MCP specification currently defines two standard transport mechanisms for client-server communication - [stdio](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#stdio) and [Streamable HTTP](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#streamable-http). It allows some flexibility in implementation and also supports custom transports. However, implementers must ensure the following:
+
+- All messages MUST use JSON-RPC 2.0 format and be UTF-8 encoded.
+- Lifecycle requirements during both initialization and operation phases are met.
+- Each message represents an individual request, notification, or response.
+
+Based on the official specification, MiniMCP implements four transport mechanisms, detailed below:
+
+### 1. Stdio
+
+Consistent with the standard, stdio enables bidirectional communication and is commonly employed for developing local MCP servers.
+
+- The server reads messages from its standard input (stdin) and sends messages to its standard output (stdout).
+- Messages are delimited by newlines.
+- Only valid MCP messages should be written into stdin and stdout.
+
+### 2. HTTP
+
+HTTP is a subset of Streamable HTTP and doesnt provide bidirectional communication. But on the hind side, just like in the above integration example, it can be technically added as a restful API end point in any Python application for developing remote MCP servers.
+
+- Every message sent from the client MUST be a new HTTP POST request to the MCP endpoint.
+- The body of the POST request MUST be a single JSON-RPC request or notification.
+- If the input is a request - The server MUST return Content-Type: application/json, to return one response JSON object.
+- If the input is a notification - If the server accepts, the server MUST return HTTP status code 202 Accepted with no body. If the server cannot accept, it MUST return an HTTP error status code (e.g., 400 Bad Request). The HTTP response body MAY comprise a JSON-RPC error response that has no id.
+- Miltiple POST requests must be served concurrently by the server.
+
+### 3. Streamable HTTP
+
+All of the above + the following.
+
+- The SSE stream SHOULD eventually include JSON-RPC response for the JSON-RPC request sent in the POST body.
+
+### 4. Websocket
+
 ## Examples
 
-The example demonstrates a [Math MCP server](https://github.com/sreenaths/minimcp/blob/main/examples/math_mcp_server/math_mcp.py) with four tools (add, subtract, multiply, and divide) capable of working across different transport mechanisms. To run the examples, you’ll need a MiniMCP development setup. After cloning this repository, execute the following command from the project root to set up the development environment.
+The examples demonstrates a [Math MCP server](https://github.com/sreenaths/minimcp/blob/main/examples/math_mcp_server/math_mcp.py) with four tools (add, subtract, multiply, and divide) working with different transport mechanisms and frameworks. To run the examples, you’ll need a MiniMCP development setup. After cloning this repository, execute the following command from the project root to set up the development environment.
 
 ```bash
 uv sync --frozen --all-extras --dev
 ```
 
-### HTTP with FastAPI
+Following table shows different examples and the command to run them.
 
-[This example](https://github.com/sreenaths/minimcp/blob/main/examples/math_mcp_server/fastapi_http.py) demos embedding MiniMCP server into a FastAPI application.
+| # | Trsnaport | Command |
+|---|---|---|
+| 1 | Stdio | `uv run -m examples.math_mcp_server.stdio` |
+| 2 | HTTP with FastAPI | `uv run uvicorn examples.math_mcp_server.fastapi_http:app --reload` |
 
-```bash
-uv run uvicorn examples.math_mcp_server.fastapi_http:app --reload
-```
-
-### Stdio
-
-[This example](https://github.com/sreenaths/minimcp/blob/main/examples/math_mcp_server/stdio.py) demos using MiniMCP with stdio.
-
-It can be run in Claude desktop app with the following configuration.
+Claude desktop can be configured to run the stdio example as follows.
 
 ```json
 {
