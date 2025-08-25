@@ -90,13 +90,13 @@ Consistent with the standard, stdio enables bidirectional communication and is c
 
 ### 2. HTTP
 
-HTTP is a subset of Streamable HTTP and doesnt provide bidirectional communication. But on the hind side, just like in the above integration example, it can be technically added as a restful API end point in any Python application for developing remote MCP servers.
+HTTP is a subset of Streamable HTTP and doesn't provide bidirectional communication. But on the hind side, just like in the above integration example, it can be technically added as a restful API end point in any Python application for developing remote MCP servers.
 
 - Every message sent from the client MUST be a new HTTP POST request to the MCP endpoint.
 - The body of the POST request MUST be a single JSON-RPC request or notification.
 - If the input is a request - The server MUST return Content-Type: application/json, to return one response JSON object.
 - If the input is a notification - If the server accepts, the server MUST return HTTP status code 202 Accepted with no body. If the server cannot accept, it MUST return an HTTP error status code (e.g., 400 Bad Request). The HTTP response body MAY comprise a JSON-RPC error response that has no id.
-- Miltiple POST requests must be served concurrently by the server.
+- Multiple POST requests must be served concurrently by the server.
 
 ### 3. Streamable HTTP
 
@@ -116,7 +116,7 @@ uv sync --frozen --all-extras --dev
 
 Following table shows different examples and the command to run them.
 
-| # | Trsnaport | Command |
+| # | Transport | Command |
 |---|---|---|
 | 1 | Stdio | `uv run -m examples.math_mcp_server.stdio` |
 | 2 | HTTP with FastAPI | `uv run uvicorn examples.math_mcp_server.fastapi_http:app --reload` |
