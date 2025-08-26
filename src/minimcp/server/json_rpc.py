@@ -12,6 +12,7 @@ from mcp.types import (
 
 from minimcp.server.utils import to_dict
 
+# TODO: Remove once https://github.com/modelcontextprotocol/python-sdk/pull/1310 is merged
 JSON_RPC_VERSION = "2.0"
 
 
