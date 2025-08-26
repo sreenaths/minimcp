@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 async def stdio_transport(handler: TransportRequestHandler):
     """
     stdio_transport makes it easy to use MiniMCP over stdio.
-    - The anyio.wrap_file implimentation naturally apply backpressure.
+    - The anyio.wrap_file implementation naturally apply backpressure.
     - Concurrency management is expected to be enforced by MiniMCP.
 
     Args:
