@@ -10,20 +10,18 @@ from minimcp.server.utils import to_dict
 
 logger = logging.getLogger(__name__)
 
-MessageSender = Callable[[Message | None], Awaitable[None]]
-
 
 class Responder:
     _request: Message
     _progress_token: types.ProgressToken | None
 
-    _sender: MessageSender
+    _send: Callable[[Message], Awaitable[None]]
 
-    def __init__(self, request: Message, sender: MessageSender):
+    def __init__(self, request: Message, send: Callable[[Message], Awaitable[None]]):
         self._request = request
         self._progress_token = self._get_progress_token(request)
 
-        self._sender = sender
+        self._send = send
 
     def _get_progress_token(self, request: Message) -> types.ProgressToken | None:
         try:
@@ -75,4 +73,4 @@ class Responder:
         rpc_msg = json_rpc.build_notification_message(notification)
 
         # Just call the sender with the message and let transport layer handle the rest.
-        await self._sender(to_dict(rpc_msg))
+        await self._send(to_dict(rpc_msg))
