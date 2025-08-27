@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Generic
 
@@ -12,7 +13,7 @@ import minimcp.server.json_rpc as json_rpc
 from minimcp.server.managers.context_manager import ContextManager, ScopeT
 from minimcp.server.responder import Responder
 from minimcp.server.types import Message
-from minimcp.server.utils import to_dict
+from minimcp.utils.model import to_dict, to_json
 
 from .exceptions import ContextError, UnsupportedRPCMessageType
 from .managers.tool_manager import ToolManager
@@ -93,7 +94,7 @@ class MiniMCP(Generic[ScopeT]):
         self, message: Message, responder: Responder | None = None, scope: ScopeT | None = None
     ) -> Message | None:
         try:
-            rpc_msg = types.JSONRPCMessage.model_validate(message)
+            rpc_msg = types.JSONRPCMessage.model_validate(json.loads(message))
 
             async with self._limiter:
                 with anyio.fail_after(self._timeout):
@@ -126,7 +127,7 @@ class MiniMCP(Generic[ScopeT]):
             logger.info(f"No response returned for message: {message}")
             return None
 
-        return to_dict(response)
+        return to_json(response)
 
     async def _handle_rpc_msg(self, rpc_msg: types.JSONRPCMessage) -> types.JSONRPCMessage | None:
         msg_root = rpc_msg.root

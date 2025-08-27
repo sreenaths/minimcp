@@ -6,7 +6,7 @@ import mcp.types as types
 
 from minimcp.server import json_rpc
 from minimcp.server.types import Message
-from minimcp.server.utils import to_dict
+from minimcp.utils.model import to_json
 
 logger = logging.getLogger(__name__)
 
@@ -73,4 +73,4 @@ class Responder:
         rpc_msg = json_rpc.build_notification_message(notification)
 
         # Just call the sender with the message and let transport layer handle the rest.
-        await self._send(to_dict(rpc_msg))
+        await self._send(to_json(rpc_msg))
