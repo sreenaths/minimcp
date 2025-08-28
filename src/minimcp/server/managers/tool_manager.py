@@ -28,6 +28,12 @@ class ToolManager:
         self._tools = {}
         self._hook_core(core)
 
+    def _hook_core(self, core: Server) -> None:
+        core.list_tools()(self._async_list)
+        # Validation done by func_meta in call. Hence passing validate_input=False
+        # TODO: Ensure only one validation is required
+        core.call_tool(validate_input=False)(self.call)
+
     def __call__(self, **kwargs: Unpack[ToolDetails]) -> Callable[[Callable], types.Tool]:
         """
         Decorator to add a tool to the MCP tool manager.
@@ -71,12 +77,6 @@ class ToolManager:
             raise ValueError(f"Tool {name} not found")
 
         return self._tools.pop(name)[0]
-
-    def _hook_core(self, core: Server):
-        core.list_tools()(self._async_list)
-        # Validation done by func_meta in call. Hence passing validate_input=False
-        # TODO: Ensure both the validations are similar
-        core.call_tool(validate_input=False)(self.call)
 
     async def _async_list(self) -> builtins.list[types.Tool]:
         return self.list()
