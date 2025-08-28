@@ -2,9 +2,8 @@ import logging
 import sys
 
 from fastapi import FastAPI, Request
-from fastapi.responses import Response
 
-from minimcp.server.transports.http import MEDIA_TYPE, get_response_http_code
+from minimcp.server.transports.http import starlette_http_transport
 
 from .math_mcp import math_mcp
 
@@ -18,6 +17,4 @@ app = FastAPI()
 
 @app.post("/mcp")
 async def handle_mcp_request(request: Request):
-    msg = await request.body()
-    response = await math_mcp.handle(msg.decode("utf-8"))
-    return Response(content=response, status_code=get_response_http_code(response), media_type=MEDIA_TYPE)
+    return await starlette_http_transport(request, math_mcp.handle)
