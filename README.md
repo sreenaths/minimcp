@@ -51,23 +51,29 @@ pip install minimcp
 
 ### Integration
 
-Minimal code snippet showing basic tool usage using HTTP with FastAPI.
+A minimal example demonstrating how to expose an MCP tool over HTTP with FastAPI.
 
 ```python
 from fastapi import FastAPI, Request
 from minimcp import MiniMCP
 
+from minimcp.server.transports.http import starlette_http_transport
+
+# This can be an existing FastAPI/Starlette app (with authentication, middleware, etc.)
 app = FastAPI()
+
+# Create an MCP instance
 mcp = MiniMCP(name="MathServer")
 
+# Register a simple tool
 @mcp.tool(description="Add two numbers")
 def add(a:int, b:int) -> int:
     return a + b
 
+# Define the MCP endpoint
 @app.post("/mcp")
 async def handle_mcp_request(request: Request):
-    msg = await request.json()
-    return await mcp.handle(msg)
+    return await starlette_http_transport(request, mcp.handle)
 ```
 
 ## Transports
