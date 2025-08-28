@@ -9,7 +9,7 @@ from .math_mcp import math_mcp
 
 # Configure logging globally for the demo server
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
         logging.FileHandler(os.environ.get("MCP_SERVER_LOG_FILE", "mcp_server.log")),
