@@ -1,4 +1,4 @@
-from typing import Any
+from datetime import datetime
 
 from mcp.types import (
     ErrorData,
@@ -24,11 +24,8 @@ def build_notification_message(notification: ServerNotification) -> JSONRPCMessa
     return JSONRPCMessage(JSONRPCNotification(jsonrpc=JSON_RPC_VERSION, **to_dict(notification)))
 
 
-def build_error_message(
-    error_code: int, rpc_message: dict[str, Any] | None, error: BaseException, error_data: ErrorData | None = None
-) -> JSONRPCMessage:
-    message_id = rpc_message.get("id", "") if isinstance(rpc_message, dict) else ""
+def build_error_message(error_code: int, message_id: str | int, error: BaseException) -> JSONRPCMessage:
     error_message = f"{error.__class__.__name__}: {error}"
-    error_data = error_data or ErrorData(code=error_code, message=error_message, data=None)
+    error_data = ErrorData(code=error_code, message=error_message, data={"iso_timestamp": datetime.now().isoformat()})
 
-    return JSONRPCMessage(JSONRPCError(jsonrpc=JSON_RPC_VERSION, id=message_id, error=error_data))
+    return JSONRPCMessage(JSONRPCError(jsonrpc=JSON_RPC_VERSION, id=message_id or "no-id", error=error_data))

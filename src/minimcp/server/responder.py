@@ -27,7 +27,8 @@ class Responder:
         try:
             client_request = types.ClientRequest.model_validate(request)
             return attrgetter("params.meta.progressToken")(client_request.root)
-        except (Exception, AttributeError):
+        except Exception as e:
+            logger.debug("Failed to get progress token: %s", e)
             return None
 
     async def report_progress(
