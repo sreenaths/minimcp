@@ -6,7 +6,7 @@ import mcp.types as types
 from starlette.requests import Request
 from starlette.responses import Response
 
-from minimcp.server.types import Message
+from minimcp.server.types import Message, ResponseType
 
 MEDIA_TYPE = "application/json; charset=utf-8"
 
@@ -19,29 +19,27 @@ JSON_RPC_TO_HTTP_STATUS_CODES: dict[int, HTTPStatus] = {
 }
 
 
-def get_response_http_status(response: Message | None) -> HTTPStatus:
+def http_status_from_message(response: Message) -> HTTPStatus:
     """
-    Get the HTTP status code for a response.
+    Get the HTTP status code for a JSON-RPC message.
     """
 
-    # -- Notification --
-    if response is None:  # This is a notification
-        return HTTPStatus.ACCEPTED
-
-    # -- Response --
     response_dict = json.loads(response)
 
     if "error" not in response_dict:
         return HTTPStatus.OK
 
-    code = response_dict["error"].get("code", 0)
-    return JSON_RPC_TO_HTTP_STATUS_CODES.get(code, HTTPStatus.INTERNAL_SERVER_ERROR)
+    json_rpc_error_code = response_dict["error"].get("code", 0)
+    return JSON_RPC_TO_HTTP_STATUS_CODES.get(json_rpc_error_code, HTTPStatus.INTERNAL_SERVER_ERROR)
 
 
-async def starlette_http_transport(request: Request, handler: Callable[[Message], Awaitable[Message | None]]):
+async def starlette_http_transport(request: Request, handler: Callable[[Message], Awaitable[Message | ResponseType]]):
     msg = await request.body()
     msg_str = msg.decode("utf-8")
 
     response = await handler(msg_str)
 
-    return Response(content=response, status_code=get_response_http_status(response), media_type=MEDIA_TYPE)
+    if isinstance(response, ResponseType):
+        return Response(status_code=HTTPStatus.ACCEPTED)
+
+    return Response(content=response, status_code=http_status_from_message(response), media_type=MEDIA_TYPE)
