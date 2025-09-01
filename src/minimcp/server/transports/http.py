@@ -1,14 +1,23 @@
 import json
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
+from dataclasses import dataclass
 from http import HTTPStatus
+from typing import Any
 
 import mcp.types as types
-from starlette.requests import Request
-from starlette.responses import Response
 
 from minimcp.server.types import Message, NoMessage
 
-MEDIA_TYPE = "application/json; charset=utf-8"
+CONTENT_TYPE_JSON = "application/json"
+
+
+@dataclass
+class HTTPResult:
+    status_code: HTTPStatus
+    content: Any | None = None
+    media_type: str | None = None
+    headers: Mapping[str, str] | None = None
+
 
 JSON_RPC_TO_HTTP_STATUS_CODES: dict[int, HTTPStatus] = {
     types.PARSE_ERROR: HTTPStatus.BAD_REQUEST,
@@ -18,28 +27,40 @@ JSON_RPC_TO_HTTP_STATUS_CODES: dict[int, HTTPStatus] = {
     types.INTERNAL_ERROR: HTTPStatus.INTERNAL_SERVER_ERROR,
 }
 
-
-def http_status_from_message(response: Message) -> HTTPStatus:
-    """
-    Get the HTTP status code for a JSON-RPC message.
-    """
-
-    response_dict = json.loads(response)
-
-    if "error" not in response_dict:
-        return HTTPStatus.OK
-
-    json_rpc_error_code = response_dict["error"].get("code", 0)
-    return JSON_RPC_TO_HTTP_STATUS_CODES.get(json_rpc_error_code, HTTPStatus.INTERNAL_SERVER_ERROR)
+HTTPRequestHandler = Callable[[Message], Awaitable[Message | NoMessage]]
 
 
-async def starlette_http_transport(request: Request, handler: Callable[[Message], Awaitable[Message | NoMessage]]):
-    msg = await request.body()
-    msg_str = msg.decode("utf-8")
+class HTTPTransport:
+    def _get_status_code(self, msg: Message) -> HTTPStatus:
+        """
+        Get the HTTP status code for a JSON-RPC message.
+        """
 
-    response = await handler(msg_str)
+        response_dict = json.loads(msg)
 
-    if isinstance(response, NoMessage):
-        return Response(status_code=HTTPStatus.ACCEPTED)
+        if "error" not in response_dict:
+            return HTTPStatus.OK
 
-    return Response(content=response, status_code=http_status_from_message(response), media_type=MEDIA_TYPE)
+        json_rpc_error_code = response_dict["error"].get("code", 0)
+        return JSON_RPC_TO_HTTP_STATUS_CODES.get(json_rpc_error_code, HTTPStatus.INTERNAL_SERVER_ERROR)
+
+    async def dispatch(
+        self, handler: HTTPRequestHandler, method: str, headers: Mapping[str, str], body: str
+    ) -> HTTPResult:
+        if method == "POST":
+            # _check_accept_headers
+            # _check_content_type
+            # _validate_protocol_version header
+
+            response = await handler(body)
+
+            if isinstance(response, NoMessage):
+                return HTTPResult(HTTPStatus.ACCEPTED)
+
+            status_code = self._get_status_code(response)
+            return HTTPResult(status_code, response, CONTENT_TYPE_JSON)
+        else:
+            return HTTPResult(HTTPStatus.METHOD_NOT_ALLOWED)
+
+
+HTTP_TRANSPORT = HTTPTransport()
