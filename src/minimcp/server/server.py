@@ -188,7 +188,8 @@ class MiniMCP(Generic[ScopeT]):
             logger.debug("Dispatching notification of type %s", notification_type.__name__)
 
             try:
-                # Deliberately avoiding a fire-and-forget pattern. No background handlers should run without explicit control and a defined TTL.
+                # Deliberately avoiding a fire-and-forget pattern. No background handlers should run without
+                # explicit control and a defined TTL.
                 await handler(notification.root)
             except Exception:
                 logger.exception("Uncaught exception in notification handler")
@@ -205,7 +206,8 @@ class MiniMCP(Generic[ScopeT]):
             if client_protocol_version in version.SUPPORTED_PROTOCOL_VERSIONS
             else types.LATEST_PROTOCOL_VERSION
         )
-        # TODO: Error handling on protocol version mismatch - https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle#error-handling
+        # TODO: Error handling on protocol version mismatch
+        # https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle#error-handling
 
         init_options = self._core.create_initialization_options(
             notification_options=self._notification_options,
