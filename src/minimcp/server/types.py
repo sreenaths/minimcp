@@ -6,9 +6,10 @@ Message = str
 Send = Callable[[Message], Awaitable[None]]
 
 
-class ResponseType(Enum):
+class NoMessage(Enum):
     """
-    Represents handler responses that are not JSON-RPC messages.
+    Represents handler responses without any message.
+    https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#sending-messages-to-the-server
     """
 
     NOTIFICATION = "notification"  # Response to a client notification

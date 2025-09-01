@@ -6,7 +6,7 @@ import mcp.types as types
 from starlette.requests import Request
 from starlette.responses import Response
 
-from minimcp.server.types import Message, ResponseType
+from minimcp.server.types import Message, NoMessage
 
 MEDIA_TYPE = "application/json; charset=utf-8"
 
@@ -33,13 +33,13 @@ def http_status_from_message(response: Message) -> HTTPStatus:
     return JSON_RPC_TO_HTTP_STATUS_CODES.get(json_rpc_error_code, HTTPStatus.INTERNAL_SERVER_ERROR)
 
 
-async def starlette_http_transport(request: Request, handler: Callable[[Message], Awaitable[Message | ResponseType]]):
+async def starlette_http_transport(request: Request, handler: Callable[[Message], Awaitable[Message | NoMessage]]):
     msg = await request.body()
     msg_str = msg.decode("utf-8")
 
     response = await handler(msg_str)
 
-    if isinstance(response, ResponseType):
+    if isinstance(response, NoMessage):
         return Response(status_code=HTTPStatus.ACCEPTED)
 
     return Response(content=response, status_code=http_status_from_message(response), media_type=MEDIA_TYPE)

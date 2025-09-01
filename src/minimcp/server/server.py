@@ -12,7 +12,7 @@ from pydantic import ValidationError
 import minimcp.server.json_rpc as json_rpc
 from minimcp.server.managers.context_manager import ContextManager, ScopeT
 from minimcp.server.responder import Responder
-from minimcp.server.types import Message, ResponseType, Send
+from minimcp.server.types import Message, NoMessage, Send
 from minimcp.utils.model import to_dict, to_json
 
 from .exceptions import ContextError, InvalidParamsError, MethodNotFoundError, ParserError, UnsupportedRPCMessageType
@@ -93,7 +93,7 @@ class MiniMCP(Generic[ScopeT]):
     # --- Handlers ---
     async def handle(
         self, message: Message, send: Send | None = None, scope: ScopeT | None = None
-    ) -> Message | ResponseType:
+    ) -> Message | NoMessage:
         message_id = ""
         try:
             responder = Responder(message, send) if send else None
@@ -131,7 +131,7 @@ class MiniMCP(Generic[ScopeT]):
             logger.debug("Task cancelled: %s. Message: %s", e, message)
             raise  # Cancel must be re-raised
 
-        if isinstance(response, ResponseType):
+        if isinstance(response, NoMessage):
             return response
 
         return to_json(response)
@@ -147,7 +147,7 @@ class MiniMCP(Generic[ScopeT]):
         except ValidationError as e:
             raise InvalidParamsError(str(e)) from e
 
-    async def _handle_rpc_msg(self, rpc_msg: types.JSONRPCMessage) -> types.JSONRPCMessage | ResponseType:
+    async def _handle_rpc_msg(self, rpc_msg: types.JSONRPCMessage) -> types.JSONRPCMessage | NoMessage:
         msg_root = rpc_msg.root
 
         # --- Handle request ---
@@ -182,7 +182,7 @@ class MiniMCP(Generic[ScopeT]):
         else:
             raise MethodNotFoundError(f"Method not found for request type {request_type.__name__}")
 
-    async def _handle_client_notification(self, notification: types.ClientNotification) -> ResponseType:
+    async def _handle_client_notification(self, notification: types.ClientNotification) -> NoMessage:
         notification_type = type(notification.root)
         if handler := self._core.notification_handlers.get(notification_type):
             logger.debug("Dispatching notification of type %s", notification_type.__name__)
@@ -195,7 +195,7 @@ class MiniMCP(Generic[ScopeT]):
         else:
             logger.debug("No handler found for notification type %s", notification_type.__name__)
 
-        return ResponseType.NOTIFICATION
+        return NoMessage.NOTIFICATION
 
     async def _initialize_handler(self, req: types.InitializeRequest) -> types.ServerResult:
         client_protocol_version = req.params.protocolVersion
