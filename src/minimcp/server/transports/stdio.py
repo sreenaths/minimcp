@@ -5,13 +5,12 @@ from io import TextIOWrapper
 
 import anyio
 
-from minimcp.server.responder import Responder
-from minimcp.server.types import Message, ResponseType
+from minimcp.server.types import Message, ResponseType, Send
 
 logger = logging.getLogger(__name__)
 
 
-async def stdio_transport(handler: Callable[[Message, Responder], Awaitable[Message | ResponseType]]):
+async def stdio_transport(handler: Callable[[Message, Send], Awaitable[Message | ResponseType]]):
     """
     stdio_transport makes it easy to use MiniMCP over stdio.
     - The anyio.wrap_file implementation naturally apply backpressure.
@@ -41,8 +40,7 @@ async def stdio_transport(handler: Callable[[Message, Responder], Awaitable[Mess
         if line:
             logger.info("Handling incoming message: %s", line)
 
-            responder = Responder(line, write_msg)
-            response = await handler(line, responder)
+            response = await handler(line, write_msg)
 
             await write_msg(response)
 

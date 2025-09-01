@@ -12,7 +12,7 @@ from pydantic import ValidationError
 import minimcp.server.json_rpc as json_rpc
 from minimcp.server.managers.context_manager import ContextManager, ScopeT
 from minimcp.server.responder import Responder
-from minimcp.server.types import Message, ResponseType
+from minimcp.server.types import Message, ResponseType, Send
 from minimcp.utils.model import to_dict, to_json
 
 from .exceptions import ContextError, InvalidParamsError, MethodNotFoundError, ParserError, UnsupportedRPCMessageType
@@ -92,10 +92,11 @@ class MiniMCP(Generic[ScopeT]):
 
     # --- Handlers ---
     async def handle(
-        self, message: Message, responder: Responder | None = None, scope: ScopeT | None = None
+        self, message: Message, send: Send | None = None, scope: ScopeT | None = None
     ) -> Message | ResponseType:
         message_id = ""
         try:
+            responder = Responder(message, send) if send else None
             message_id, rpc_msg = self._parse_message(message)
 
             async with self._limiter:

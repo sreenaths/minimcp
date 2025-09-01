@@ -3,7 +3,8 @@ import os
 
 import anyio
 
-from minimcp import Message, Responder, stdio_transport
+from minimcp import Message, stdio_transport
+from minimcp.server.types import Send
 
 from .math_mcp import math_mcp
 
@@ -19,12 +20,12 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-async def custom_handler(message: Message, responder: Responder):
+async def custom_handler(message: Message, send: Send):
     try:
         # You could do setup (like building scope or session, creating custom responder, etc)
         # Custom scope type can be defined while instantiating MiniMCP.
         scope = {"session_id": "123"}
-        return await math_mcp.handle(message, responder, scope)
+        return await math_mcp.handle(message, send, scope)
     finally:
         pass
         # You could do teardown (like closing connections, etc) here.

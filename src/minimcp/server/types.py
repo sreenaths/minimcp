@@ -1,6 +1,9 @@
+from collections.abc import Awaitable, Callable
 from enum import Enum
 
 Message = str
+
+Send = Callable[[Message], Awaitable[None]]
 
 
 class ResponseType(Enum):

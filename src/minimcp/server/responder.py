@@ -1,11 +1,10 @@
 import logging
-from collections.abc import Awaitable, Callable
 from operator import attrgetter
 
 import mcp.types as types
 
 from minimcp.server import json_rpc
-from minimcp.server.types import Message
+from minimcp.server.types import Message, Send
 from minimcp.utils.model import to_json
 
 logger = logging.getLogger(__name__)
@@ -15,9 +14,9 @@ class Responder:
     _request: Message
     _progress_token: types.ProgressToken | None
 
-    _send: Callable[[Message], Awaitable[None]]
+    _send: Send
 
-    def __init__(self, request: Message, send: Callable[[Message], Awaitable[None]]):
+    def __init__(self, request: Message, send: Send):
         self._request = request
         self._progress_token = self._get_progress_token(request)
 
