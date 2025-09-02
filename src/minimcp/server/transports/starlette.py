@@ -10,4 +10,6 @@ async def http_transport(handler: HTTPRequestHandler, request: Request):
 
     result = await HTTP_TRANSPORT.dispatch(handler, request.method, request.headers, msg_str)
 
-    return Response(content=result.content, status_code=result.status_code, media_type=result.media_type)
+    return Response(
+        content=result.content, status_code=result.status_code, media_type=result.media_type, headers=result.headers
+    )
