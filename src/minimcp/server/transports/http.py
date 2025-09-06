@@ -131,6 +131,3 @@ class HTTPTransport:
         err = ValueError(err_msg)
         content = json_rpc.build_error_message(types.INVALID_REQUEST, "", err)
         return HTTPResult(status_code, content, CONTENT_TYPE_JSON)
-
-
-HTTP_TRANSPORT = HTTPTransport()
