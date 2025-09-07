@@ -1,3 +1,4 @@
+import json
 import logging
 from operator import attrgetter
 
@@ -24,7 +25,7 @@ class Responder:
 
     def _get_progress_token(self, request: Message) -> types.ProgressToken | None:
         try:
-            client_request = types.ClientRequest.model_validate(request)
+            client_request = types.ClientRequest.model_validate(json.loads(request))
             return attrgetter("params.meta.progressToken")(client_request.root)
         except Exception as e:
             logger.debug("Failed to get progress token: %s", e)
@@ -46,6 +47,7 @@ class Responder:
         """
 
         if self._progress_token is None:
+            logger.warning("report_progress failed: Progress token is not available.")
             return None
 
         notification = types.ServerNotification(

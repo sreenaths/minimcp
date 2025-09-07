@@ -126,6 +126,7 @@ Following table shows different examples and the command to run them.
 |---|---|---|
 | 1 | Stdio | `uv run -m examples.math_mcp_server.stdio` |
 | 2 | HTTP with FastAPI | `uv run uvicorn examples.math_mcp_server.fastapi_http:app --reload` |
+| 3 | Streamable HTTP with FastAPI | `uv run uvicorn examples.math_mcp_server.fastapi_streamable_http:app --reload` |
 
 Claude desktop can be configured to run the stdio example as follows.
 
