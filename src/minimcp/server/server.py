@@ -188,8 +188,9 @@ class MiniMCP(Generic[ScopeT]):
             logger.debug("Dispatching notification of type %s", notification_type.__name__)
 
             try:
-                # Deliberately avoiding a fire-and-forget pattern at the server level.
-                # No background handlers should run without explicit control and a defined TTL.
+                # Avoiding the "fire-and-forget" pattern for notifications at the server layer.
+                # This behavior should be handled at the transport layer.
+                # This ensures all handlers are explicitly controlled and have a defined time to live.
                 await handler(notification.root)
             except Exception:
                 logger.exception("Uncaught exception in notification handler")
