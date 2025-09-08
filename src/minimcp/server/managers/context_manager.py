@@ -38,7 +38,7 @@ class ContextManager(Generic[ScopeT]):
             # Clear context
             self._ctx.reset(token)
 
-    def _get(self) -> Context[ScopeT]:
+    def get(self) -> Context[ScopeT]:
         try:
             return self._ctx.get()
         except LookupError:
@@ -47,16 +47,16 @@ class ContextManager(Generic[ScopeT]):
             raise err
 
     def get_message(self) -> JSONRPCMessage:
-        return self._get().message
+        return self.get().message
 
     def get_scope(self) -> ScopeT:
-        scope = self._get().scope
+        scope = self.get().scope
         if scope is None:
             raise ContextError("Scope is not available in current context")
         return scope
 
     def get_responder(self) -> Responder:
-        responder = self._get().responder
+        responder = self.get().responder
         if responder is None:
             raise ContextError("Responder is not available in current context")
         return responder
