@@ -57,6 +57,7 @@ HandlerTaskResponse = Message | NoMessage | MemoryObjectReceiveStream[Message]
 suppress_stream_errors = suppress(anyio.BrokenResourceError, anyio.ClosedResourceError)
 
 
+# TODO: Add resumability based on Last-Event-ID header
 class StreamableHTTPTransport:
     _stack: AsyncExitStack
     _tg: TaskGroup | None
