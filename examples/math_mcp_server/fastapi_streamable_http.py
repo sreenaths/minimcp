@@ -22,8 +22,9 @@ async def add(
     a: float = Field(description="The first float number"), b: float = Field(description="The second float number")
 ) -> float:
     responder = math_mcp.context.get_responder()
+    await responder.report_progress(0.1, message="Adding numbers")
     await anyio.sleep(1)
-    await responder.report_progress(0.3, message="Adding numbers")
+    await responder.report_progress(0.4, message="Adding numbers")
     await anyio.sleep(1)
     await responder.report_progress(0.7, message="Adding numbers")
     await anyio.sleep(1)
