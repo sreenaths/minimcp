@@ -207,7 +207,7 @@ class MiniMCP(Generic[ScopeT]):
             if client_protocol_version in version.SUPPORTED_PROTOCOL_VERSIONS
             else types.LATEST_PROTOCOL_VERSION
         )
-        # TODO: Error handling on protocol version mismatch
+        # TODO: Error handling on protocol version mismatch. Handled in HTTP transport.
         # https://modelcontextprotocol.io/specification/2025-06-18/basic/lifecycle#error-handling
 
         init_options = self._core.create_initialization_options(
