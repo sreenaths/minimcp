@@ -36,7 +36,9 @@ async def streamable_http_lifespan(app: Starlette) -> AsyncGenerator[None, None]
         yield
 
 
-async def streamable_http_transport(handler: StreamableHTTPRequestHandler, request: Request) -> Response:
+async def streamable_http_transport(
+    handler: StreamableHTTPRequestHandler, request: Request, ping: int = 15
+) -> Response:
     msg = await request.body()
     msg_str = msg.decode("utf-8")
 
@@ -54,7 +56,7 @@ async def streamable_http_transport(handler: StreamableHTTPRequestHandler, reque
     if isinstance(result.content, MemoryObjectReceiveStream):
         return EventSourceResponse(
             content=result.content,
-            ping=15,
+            ping=ping,
             headers=result.headers,
             background=close_transport,
         )
