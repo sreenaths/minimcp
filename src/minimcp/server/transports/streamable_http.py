@@ -28,9 +28,6 @@ SSE_HEADERS = {
 StreamableHTTPRequestHandler = Callable[[Message, Send], Awaitable[Message | NoMessage]]
 
 
-HandlerTaskResponse = Message | NoMessage | MemoryObjectReceiveStream[Message]
-
-
 # Context manager for suppressing expected stream errors
 suppress_stream_errors = suppress(anyio.BrokenResourceError, anyio.ClosedResourceError)
 
@@ -70,7 +67,10 @@ class StreamableHTTPTransport(HTTPTransportBase):
             return self._handle_unsupported_request({"POST"})
 
     async def _runner(
-        self, handler: StreamableHTTPRequestHandler, body: str, task_status: TaskStatus[HandlerTaskResponse]
+        self,
+        handler: StreamableHTTPRequestHandler,
+        body: str,
+        task_status: TaskStatus[Message | NoMessage | MemoryObjectReceiveStream[Message]],
     ):
         task_status_wrapper = TaskStatusWrapper(task_status)
 
