@@ -4,11 +4,14 @@ from contextlib import AsyncExitStack, suppress
 from http import HTTPStatus
 
 import anyio
+import mcp.types as types
 from anyio.abc import TaskGroup, TaskStatus
 from anyio.streams.memory import MemoryObjectReceiveStream
 
+from minimcp.server import json_rpc
 from minimcp.server.transports.http_transport_base import CONTENT_TYPE_JSON, HTTPResult, HTTPTransportBase
 from minimcp.server.types import Message, NoMessage, Send
+from minimcp.utils.model import to_json
 from minimcp.utils.task_status_wrapper import TaskStatusWrapper
 
 logger = logging.getLogger(__name__)
@@ -79,28 +82,34 @@ class StreamableHTTPTransport(HTTPTransportBase):
             with suppress_stream_errors:
                 await send_stream.send(msg)
 
-        async with send_stream:
-            response = await handler(body, send)
+        try:
+            async with send_stream:
+                response = await handler(body, send)
 
-            if task_status_wrapper.set(response):
-                # recv_stream will not be used, close it to free resources
-                with suppress_stream_errors:
-                    await recv_stream.aclose()
-            elif not isinstance(response, NoMessage):
-                # Stream was set as status, send the response to the stream
-                with suppress_stream_errors:
-                    await send_stream.send(response)
+                if task_status_wrapper.set(response):
+                    # recv_stream will not be used, close it to free resources
+                    with suppress_stream_errors:
+                        await recv_stream.aclose()
+                elif not isinstance(response, NoMessage):
+                    # Stream was set as status, send the response to the stream
+                    with suppress_stream_errors:
+                        await send_stream.send(response)
 
-        # Exception Handling:
-        # 1. Exceptions before task_status is set:
-        #    - Propagate directly to the caller of self._tg.start(...)
-        #    - This includes setup errors (stream creation, context manager entry)
-        # 2. Exceptions inside handler:
-        #    - Handler exceptions should be caught and handled by the handler itself
-        #    - Unhandled handler exceptions must cancel the transport and propagate
-        # 3. Exceptions after handler returns:
-        #    - Specific stream errors are handled gracefully
-        #    - Others are unexpected, hence they must cancel the transport and propagate
+        except Exception as e:
+            logger.exception("Exception while handling request in StreamableHTTPTransport, generating error response")
+            # Generate a proper JSON-RPC error response
+            error_json = to_json(json_rpc.build_error_message(types.INTERNAL_ERROR, "", e))
+
+            if not task_status_wrapper.set(error_json):
+                # Try to send error through the stream if it exists and is still open
+                with suppress_stream_errors:
+                    await send_stream.send(error_json)
+
+        # Exception Handling Strategy:
+        # 1. Setup exceptions (stream creation, context manager): Propagate to caller (before try/except)
+        # 2. Handler exceptions: Caught and converted to JSON-RPC error responses
+        # 3. Cleanup exceptions: Handled gracefully with suppress_stream_errors
+        # This prevents TaskGroup crashes while maintaining proper error reporting
 
     async def _handle_post_request(
         self, handler: StreamableHTTPRequestHandler, headers: Mapping[str, str], body: str
@@ -115,13 +124,7 @@ class StreamableHTTPTransport(HTTPTransportBase):
         if self._tg is None:
             raise RuntimeError("StreamableHTTPTransport was not started")
 
-        try:
-            response = await self._tg.start(self._runner, handler, body)
-        except Exception as e:
-            # Unexpected exception in _runner after task started - transport is now broken
-            # Cancel the transport to ensure clean state
-            await self.aclose()
-            raise RuntimeError("Transport cancelled due to unexpected exception in runner") from e
+        response = await self._tg.start(self._runner, handler, body)
 
         if isinstance(response, MemoryObjectReceiveStream):
             return HTTPResult(HTTPStatus.OK, response, headers=SSE_HEADERS)
