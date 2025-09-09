@@ -12,6 +12,7 @@ from typing_extensions import TypedDict, Unpack
 
 class ToolDetails(TypedDict, total=False):
     name: str | None
+    title: str | None
     description: str | None
     annotations: types.ToolAnnotations | None
     meta: dict[str, Any] | None
@@ -30,6 +31,7 @@ class ToolManager:
 
     def _hook_core(self, core: Server) -> None:
         core.list_tools()(self._async_list)
+
         # Validation done by func_meta in call. Hence passing validate_input=False
         # TODO: Ensure only one validation is required
         core.call_tool(validate_input=False)(self.call)
@@ -58,6 +60,7 @@ class ToolManager:
 
         tool = types.Tool(
             name=tool_name,
+            title=kwargs.get("title", None),
             description=kwargs.get("description", func.__doc__),
             inputSchema=parameters,
             outputSchema=func_meta.output_schema,
