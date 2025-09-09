@@ -5,9 +5,10 @@ from functools import partial
 from typing import Any
 
 import mcp.types as types
-from mcp.server.fastmcp.utilities.func_metadata import FuncMetadata, func_metadata
 from mcp.server.lowlevel.server import Server
 from typing_extensions import TypedDict, Unpack
+
+from minimcp.utils.func import FuncDetails, extract_func_details, validate_func_name
 
 
 class ToolDetails(TypedDict, total=False):
@@ -23,7 +24,7 @@ class ToolManager:
     Manages tool definitions and handlers.
     """
 
-    _tools: dict[str, tuple[types.Tool, types.AnyFunction, FuncMetadata]]
+    _tools: dict[str, tuple[types.Tool, types.AnyFunction, FuncDetails]]
 
     def __init__(self, core: Server):
         self._tools = {}
@@ -47,31 +48,25 @@ class ToolManager:
         Add a tool to the MCP tool manager.
         """
 
-        if isinstance(func, classmethod):
-            raise ValueError("Tool function cannot be a classmethod")
+        details = extract_func_details(func)
 
-        tool_name = kwargs.get("name", func.__name__)
-
-        if not tool_name:
-            raise ValueError("Tool name is required")
-
+        tool_name = validate_func_name(kwargs.get("name", details.name))
         if tool_name in self._tools:
             raise ValueError(f"Tool {tool_name} already registered")
 
-        func_meta = func_metadata(func)
-        parameters = func_meta.arg_model.model_json_schema(by_alias=True)
+        parameters = details.meta.arg_model.model_json_schema(by_alias=True)
 
         tool = types.Tool(
             name=tool_name,
             title=kwargs.get("title", None),
-            description=kwargs.get("description", func.__doc__),
+            description=kwargs.get("description", details.doc),
             inputSchema=parameters,
-            outputSchema=func_meta.output_schema,
+            outputSchema=details.meta.output_schema,
             annotations=kwargs.get("annotations", None),
             _meta=kwargs.get("meta", None),
         )
 
-        self._tools[tool_name] = (tool, func, func_meta)
+        self._tools[tool_name] = (tool, func, details)
 
         return tool
 
@@ -98,13 +93,13 @@ class ToolManager:
         if name not in self._tools:
             raise ValueError(f"Tool {name} not found")
 
-        _, handler, func_meta = self._tools[name]
+        _, handler, details = self._tools[name]
 
-        parsed_args = func_meta.pre_parse_json(args)
-        validated_args = func_meta.arg_model.model_validate(parsed_args)
+        parsed_args = details.meta.pre_parse_json(args)
+        validated_args = details.meta.arg_model.model_validate(parsed_args)
         result = handler(**validated_args.model_dump_one_level())
 
         if inspect.isawaitable(result):
             result = await result
 
-        return func_meta.convert_result(result)
+        return details.meta.convert_result(result)
