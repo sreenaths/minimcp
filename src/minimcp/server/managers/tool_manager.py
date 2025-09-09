@@ -47,6 +47,9 @@ class ToolManager:
         Add a tool to the MCP tool manager.
         """
 
+        if isinstance(func, classmethod):
+            raise ValueError("Tool function cannot be a classmethod")
+
         tool_name = kwargs.get("name", func.__name__)
 
         if not tool_name:
