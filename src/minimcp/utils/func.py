@@ -39,6 +39,9 @@ def validate_func(func: AnyFunction) -> None:
     if isinstance(func, staticmethod):
         raise ValueError("Function cannot be a staticmethod")
 
+    if getattr(func, "__isabstractmethod__", False):
+        raise ValueError("Function cannot be an abstract method")
+
     if not inspect.isroutine(func):
         raise ValueError("Value passed is not a function or method")
 
