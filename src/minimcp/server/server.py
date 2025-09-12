@@ -19,6 +19,7 @@ from minimcp.server.exceptions import (
 )
 from minimcp.server.managers.context_manager import ContextManager, ScopeT
 from minimcp.server.managers.prompt_manager import PromptManager
+from minimcp.server.managers.resource_manager import ResourceManager
 from minimcp.server.managers.tool_manager import ToolManager
 from minimcp.server.responder import Responder
 from minimcp.server.types import Message, NoMessage, Send
@@ -37,6 +38,7 @@ class MiniMCP(Generic[ScopeT]):
 
     tool: ToolManager
     prompt: PromptManager
+    resource: ResourceManager
     context: ContextManager[ScopeT]
 
     def __init__(
@@ -83,6 +85,8 @@ class MiniMCP(Generic[ScopeT]):
         # Setup managers
         self.tool = ToolManager(self._core)
         self.prompt = PromptManager(self._core)
+        self.resource = ResourceManager(self._core)
+
         self.context = ContextManager()
 
     # --- Properties ---
