@@ -26,10 +26,11 @@ Output:
 """
 
 
-@math_mcp.tool(description="Add two numbers")
+@math_mcp.tool()
 def add(
     a: float = Field(description="The first float number"), b: float = Field(description="The second float number")
 ) -> float:
+    "Add two numbers"
     return a + b
 
 
@@ -40,10 +41,12 @@ def subtract(
     return a - b
 
 
-@math_mcp.tool(description="Multiply two numbers")
-def multiply(
+@math_mcp.tool(name="multiply")  # Different name from function name
+def product(
     a: float = Field(description="The first float number"), b: float = Field(description="The second float number")
 ) -> float:
+    "Multiply two numbers"
+
     return a * b
 
 
