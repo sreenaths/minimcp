@@ -11,7 +11,7 @@ from mcp.types import AnyFunction, GetPromptResult, Prompt, PromptArgument, Prom
 from pydantic import TypeAdapter, validate_call
 from typing_extensions import TypedDict, Unpack
 
-from minimcp.utils.func import FuncDetails, extract_func_details, validate_func_name
+from minimcp.utils.func import extract_func_details, validate_func_name
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class PromptOptions(TypedDict, total=False):
 
 
 class PromptManager:
-    _prompts: dict[str, tuple[Prompt, AnyFunction, FuncDetails]]
+    _prompts: dict[str, tuple[Prompt, AnyFunction]]
 
     def __init__(self, core: Server):
         self._prompts = {}
@@ -79,7 +79,7 @@ class PromptManager:
             _meta=kwargs.get("meta", None),
         )
 
-        self._prompts[prompt_name] = (prompt, func, details)
+        self._prompts[prompt_name] = (prompt, func)
 
         return prompt
 
