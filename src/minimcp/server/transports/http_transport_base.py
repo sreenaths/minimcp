@@ -2,6 +2,7 @@ import json
 from collections.abc import Mapping
 from dataclasses import dataclass
 from http import HTTPStatus
+from json.decoder import JSONDecodeError
 from typing import Any
 
 import mcp.types as types
@@ -79,10 +80,14 @@ class HTTPTransportBase:
         return None
 
     def _validate_protocol_version(self, headers: Mapping[str, str], body: str) -> HTTPResult | None:
-        request_obj = json.loads(body)
-        if isinstance(request_obj, dict) and request_obj.get("method") == "initialize":
-            # Ignore protocol version validation for initialize request
-            return None
+        try:
+            request_obj = json.loads(body)
+            if isinstance(request_obj, dict) and request_obj.get("method") == "initialize":
+                # Ignore protocol version validation for initialize request
+                return None
+        except JSONDecodeError:
+            # Ignore JSON parse error. Let the handler return correct error response.
+            pass
 
         # If no protocol version provided, assume default version as per the specification
         # https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#protocol-version-header
