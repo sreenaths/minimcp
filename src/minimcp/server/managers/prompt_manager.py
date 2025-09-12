@@ -85,7 +85,7 @@ class PromptManager:
 
     def remove(self, name: str) -> Prompt:
         """
-        Remove a tool from the MCP tool manager.
+        Remove a prompt from the MCP prompt manager.
         """
         if name not in self._prompts:
             raise ValueError(f"Prompt {name} not found")
