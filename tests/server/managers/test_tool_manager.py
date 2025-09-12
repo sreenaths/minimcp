@@ -221,7 +221,7 @@ class TestToolManager:
 
         tool_manager.add(multiply)
 
-        result = await tool_manager.call("multiply", {"x": 3, "y": 4})
+        result: Any = await tool_manager.call("multiply", {"x": 3, "y": 4})
         assert isinstance(result[0][0], types.TextContent)
         assert result[1]["result"] == 12
 
@@ -236,7 +236,7 @@ class TestToolManager:
 
         tool_manager.add(async_multiply)
 
-        result = await tool_manager.call("async_multiply", {"x": 5, "y": 6})
+        result: Any = await tool_manager.call("async_multiply", {"x": 5, "y": 6})
         assert isinstance(result[0][0], types.TextContent)
         assert result[1]["result"] == 30
 
@@ -251,11 +251,11 @@ class TestToolManager:
         tool_manager.add(greet)
 
         # Call with just required argument
-        result = await tool_manager.call("greet", {"name": "Alice"})
+        result: Any = await tool_manager.call("greet", {"name": "Alice"})
         assert result[1]["result"] == "Hello, Alice!"
 
         # Call with both arguments
-        result = await tool_manager.call("greet", {"name": "Bob", "greeting": "Hi"})
+        result: Any = await tool_manager.call("greet", {"name": "Bob", "greeting": "Hi"})
         assert result[1]["result"] == "Hi, Bob!"
 
     @pytest.mark.asyncio
@@ -279,7 +279,7 @@ class TestToolManager:
 
         tool_manager.add(get_user_info)
 
-        result = await tool_manager.call("get_user_info", {"user_id": 123})
+        result: Any = await tool_manager.call("get_user_info", {"user_id": 123})
         expected = {
             "id": 123,
             "name": "User 123",
@@ -300,10 +300,10 @@ class TestToolManager:
         tool_manager.add(strict_tool)
 
         # Valid call should work
-        result = await tool_manager.call("strict_tool", {"required_int": 42})
+        result: Any = await tool_manager.call("strict_tool", {"required_int": 42})
         assert result[1]["result"] == "42-default"
 
-        result = await tool_manager.call("strict_tool", {"required_int": "42"})
+        result: Any = await tool_manager.call("strict_tool", {"required_int": "42"})
         assert result[1]["result"] == "42-default"
 
         # The actual validation happens in func_metadata, so we test that it's called
@@ -379,10 +379,10 @@ class TestToolManager:
         assert tools[0] == added_tool
 
         # Call tool
-        result = await tool_manager.call("calculator", {"operation": "add", "a": 10.5, "b": 5.2})
+        result: Any = await tool_manager.call("calculator", {"operation": "add", "a": 10.5, "b": 5.2})
         assert result[1]["result"] == 15.7
 
-        result = await tool_manager.call("calculator", {"operation": "multiply", "a": 3.0, "b": 4.0})
+        result: Any = await tool_manager.call("calculator", {"operation": "multiply", "a": 3.0, "b": 4.0})
         assert result[1]["result"] == 12.0
 
         # Remove tool

@@ -5,7 +5,7 @@ from functools import partial
 from typing import Any
 
 import mcp.types as types
-from mcp.server.lowlevel.server import Server
+from mcp.server.lowlevel.server import CombinationContent, Server, StructuredContent, UnstructuredContent
 from typing_extensions import TypedDict, Unpack
 
 from minimcp.utils.func import FuncDetails, extract_func_details, validate_func_name
@@ -85,7 +85,9 @@ class ToolManager:
     def list(self) -> builtins.list[types.Tool]:
         return [tool[0] for tool in self._tools.values()]
 
-    async def call(self, name: str, args: dict[str, Any]) -> Any:
+    async def call(
+        self, name: str, args: dict[str, Any]
+    ) -> UnstructuredContent | StructuredContent | CombinationContent:
         """
         Call a tool - Can be called from anywhere.
         """
@@ -97,9 +99,10 @@ class ToolManager:
 
         parsed_args = details.meta.pre_parse_json(args)
         validated_args = details.meta.arg_model.model_validate(parsed_args)
+
         result = handler(**validated_args.model_dump_one_level())
 
-        if inspect.isawaitable(result):
+        if inspect.iscoroutine(result):
             result = await result
 
         return details.meta.convert_result(result)
