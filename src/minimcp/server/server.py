@@ -10,13 +10,19 @@ from mcp.server.lowlevel.server import NotificationOptions, Server
 from pydantic import ValidationError
 
 import minimcp.server.json_rpc as json_rpc
+from minimcp.server.exceptions import (
+    ContextError,
+    InvalidParamsError,
+    MethodNotFoundError,
+    ParserError,
+    UnsupportedRPCMessageType,
+)
 from minimcp.server.managers.context_manager import ContextManager, ScopeT
+from minimcp.server.managers.prompt_manager import PromptManager
+from minimcp.server.managers.tool_manager import ToolManager
 from minimcp.server.responder import Responder
 from minimcp.server.types import Message, NoMessage, Send
 from minimcp.utils.model import to_dict, to_json
-
-from .exceptions import ContextError, InvalidParamsError, MethodNotFoundError, ParserError, UnsupportedRPCMessageType
-from .managers.tool_manager import ToolManager
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +36,7 @@ class MiniMCP(Generic[ScopeT]):
     _raise_exceptions: bool
 
     tool: ToolManager
+    prompt: PromptManager
     context: ContextManager[ScopeT]
 
     def __init__(
@@ -61,7 +68,7 @@ class MiniMCP(Generic[ScopeT]):
         self._raise_exceptions = raise_exceptions
         self._limiter = anyio.CapacityLimiter(self._max_concurrency)
 
-        # TODO: Add support for automatic server-to-client notifications
+        # TODO: Add support for server-to-client notifications
         self._notification_options = NotificationOptions(
             prompts_changed=False,
             resources_changed=False,
@@ -75,6 +82,7 @@ class MiniMCP(Generic[ScopeT]):
 
         # Setup managers
         self.tool = ToolManager(self._core)
+        self.prompt = PromptManager(self._core)
         self.context = ContextManager()
 
     # --- Properties ---
