@@ -7,7 +7,7 @@ import pytest
 from mcp.server.lowlevel.server import Server
 from pydantic import ValidationError
 
-from minimcp.server.managers.tool_manager import ToolDetails, ToolManager
+from minimcp.server.managers.tool_manager import ToolManager, ToolOptions
 
 
 class TestToolManager:
@@ -61,7 +61,7 @@ class TestToolManager:
         assert func == sample_add_tool
         assert func_meta is not None
 
-    def test_add_tool_with_custom_details(self, tool_manager: ToolManager):
+    def test_add_tool_with_custom_options(self, tool_manager: ToolManager):
         """Test adding a tool with custom name, description, and metadata."""
 
         def basic_func(value: int) -> int:
@@ -313,20 +313,20 @@ class TestToolManager:
         with pytest.raises(ValidationError, match="required_int"):
             await tool_manager.call("strict_tool", {"invalid_int": 42})
 
-    def test_tool_details_typed_dict(self):
-        """Test ToolDetails TypedDict structure."""
+    def test_tool_options_typed_dict(self):
+        """Test ToolOptions TypedDict structure."""
         # This tests the type structure - mainly for documentation
-        details: ToolDetails = {
+        options: ToolOptions = {
             "name": "test_name",
             "description": "test_description",
             "annotations": types.ToolAnnotations(title="test"),
             "meta": {"version": "1.0"},
         }
 
-        assert details["name"] == "test_name"
-        assert details["description"] == "test_description"
-        assert details["annotations"] == types.ToolAnnotations(title="test")
-        assert details["meta"] == {"version": "1.0"}
+        assert options["name"] == "test_name"
+        assert options["description"] == "test_description"
+        assert options["annotations"] == types.ToolAnnotations(title="test")
+        assert options["meta"] == {"version": "1.0"}
 
     def test_integration_with_func_metadata(self, tool_manager: ToolManager):
         """Test integration with func_metadata for schema generation."""
