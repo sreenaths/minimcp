@@ -11,6 +11,21 @@ math_mcp = MiniMCP(
 )
 
 
+@math_mcp.prompt()
+def problem_solving(problem: str = Field(description="The problem to solve")) -> str:
+    "General Prompt to systematically solve math problems."
+
+    return f"""You are a math problem solver.
+Solve the following problem step by step and provide the final simplified answer.
+
+Problem: {problem}
+
+Output:
+1. Step-by-step reasoning
+2. Final answer in simplest form
+"""
+
+
 @math_mcp.tool(description="Add two numbers")
 def add(
     a: float = Field(description="The first float number"), b: float = Field(description="The second float number")
