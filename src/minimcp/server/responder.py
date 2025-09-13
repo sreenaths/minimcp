@@ -5,6 +5,7 @@ from operator import attrgetter
 import mcp.types as types
 
 from minimcp.server import json_rpc
+from minimcp.server.limiter import TimeLimiter
 from minimcp.server.types import Message, Send
 from minimcp.utils.model import to_json
 
@@ -14,14 +15,16 @@ logger = logging.getLogger(__name__)
 class Responder:
     _request: Message
     _progress_token: types.ProgressToken | None
+    _time_limiter: TimeLimiter
 
     _send: Send
 
-    def __init__(self, request: Message, send: Send):
+    def __init__(self, request: Message, send: Send, time_limiter: TimeLimiter):
         self._request = request
         self._progress_token = self._get_progress_token(request)
 
         self._send = send
+        self._time_limiter = time_limiter
 
     def _get_progress_token(self, request: Message) -> types.ProgressToken | None:
         try:
@@ -73,6 +76,9 @@ class Responder:
         """
         logger.debug("Sending notification: %s", notification)
         rpc_msg = json_rpc.build_notification_message(notification)
+
+        # Reset time limiter
+        self._time_limiter.reset()
 
         # Just call the sender with the message and let transport layer handle the rest.
         await self._send(to_json(rpc_msg))

@@ -17,6 +17,7 @@ from minimcp.server.exceptions import (
     ParserError,
     UnsupportedRPCMessageType,
 )
+from minimcp.server.limiter import Limiter
 from minimcp.server.managers.context_manager import ContextManager, ScopeT
 from minimcp.server.managers.prompt_manager import PromptManager
 from minimcp.server.managers.resource_manager import ResourceManager
@@ -32,9 +33,8 @@ class MiniMCP(Generic[ScopeT]):
     _core: Server
     _notification_options: NotificationOptions | None = None
 
-    _timeout: int
-    _max_concurrency: int
     _raise_exceptions: bool
+    _limiter: Limiter
 
     tool: ToolManager
     prompt: PromptManager
@@ -46,7 +46,7 @@ class MiniMCP(Generic[ScopeT]):
         name: str,
         version: str | None = None,
         instructions: str | None = None,
-        timeout: int = 30,
+        idle_timeout: int = 30,
         max_concurrency: int = 100,
         raise_exceptions: bool = False,
     ) -> None:
@@ -58,17 +58,14 @@ class MiniMCP(Generic[ScopeT]):
             version: The version of the MCP server.
             instructions: The instructions for the MCP server.
 
-            timeout: Time in seconds after which a message handler will timeout.
+            idle_timeout: Time in seconds after which a message handler will be considered idle and timed out.
             max_concurrency: The maximum number of message handlers that could be run at
                 the same time, beyond which the handle() calls will be blocked.
             raise_exceptions: Whether to raise uncaught exceptions while handling
                 messages. Useful for development and testing.
         """
-        self._timeout = timeout
-        self._max_concurrency = max_concurrency
-
         self._raise_exceptions = raise_exceptions
-        self._limiter = anyio.CapacityLimiter(self._max_concurrency)
+        self._limiter = Limiter(idle_timeout, max_concurrency)
 
         # TODO: Add support for server-to-client notifications
         self._notification_options = NotificationOptions(
@@ -108,13 +105,12 @@ class MiniMCP(Generic[ScopeT]):
     ) -> Message | NoMessage:
         message_id = ""
         try:
-            responder = Responder(message, send) if send else None
             message_id, rpc_msg = self._parse_message(message)
 
-            async with self._limiter:
-                with anyio.fail_after(self._timeout):
-                    with self.context.active(rpc_msg, scope, responder):
-                        response = await self._handle_rpc_msg(rpc_msg)
+            async with self._limiter() as time_limiter:
+                responder = Responder(message, send, time_limiter) if send else None
+                with self.context.active(rpc_msg, scope, responder):
+                    response = await self._handle_rpc_msg(rpc_msg)
 
         # --- Centralized MCP error handling - Handle all MCP/JSON-RPC exceptions here ---
         # - Each transport may implement additional handling if needed.
