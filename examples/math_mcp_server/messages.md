@@ -2,6 +2,12 @@
 
 Sample JSON-RPC 2.0 messages - request and expected response.
 
+The messages below can be tested using an HTTP client such as Postman. Make sure to set the Accept and Content-Type headers. Use the following command to start the MiinMCP server.
+
+```bash
+uv run uvicorn examples.math_mcp_server.fastapi_http:app --reload
+```
+
 ## Ping
 
 ```json
@@ -139,6 +145,12 @@ Sample JSON-RPC 2.0 messages - request and expected response.
 
 ### Tool Calling With Progress
 
+MiniMCP server must be started with streamable HTTP transport.
+
+```bash
+uv run uvicorn examples.math_mcp_server.fastapi_streamable_http:app --reload
+```
+
 ```json
 // Request
 {
@@ -217,11 +229,11 @@ Sample JSON-RPC 2.0 messages - request and expected response.
         "prompts": [
             {
                 "name": "problem_solving",
-                "description": "General Math Problem Solving Prompt",
+                "description": "General Prompt to systematically solve math problems.",
                 "arguments": [
                     {
-                        "name": "problem",
-                        "description": "The problem to solve",
+                        "name": "problem_description",
+                        "description": "Description of the problem to solve",
                         "required": true
                     }
                 ]
@@ -234,30 +246,146 @@ Sample JSON-RPC 2.0 messages - request and expected response.
 ### Get Prompt
 
 ```json
+// Request
 {
     "jsonrpc": "2.0",
-    "id": "prompt-get-1",
+    "id": "prompt-3",
     "method": "prompts/get",
     "params": {
         "name": "problem_solving",
         "arguments": {
-            "problem": "What is the value of x, when 2x + 5 = 17",
+            "problem_description": "Find the area of a circle with radius 5 meters"
         }
     }
 }
 
+// Responses
 {
     "jsonrpc": "2.0",
-    "id": "prompt-get-1",
+    "id": "prompt-3",
     "result": {
-        "description": "General Math Problem Solving Prompt",
+        "description": "General prompt to systematically solve math problems.",
         "messages": [
             {
                 "role": "user",
                 "content": {
                     "type": "text",
-                    "text": "You are a math problem solver.\nSolve the following problem step by step and provide the final simplified answer.\n\nProblem: What is the value of x, when 2x + 5 = 17\n\nOutput:\n1. Step-by-step reasoning\n2. Final answer in simplest form\n"
+                    "text": "You are a math problem solver.\nSolve the following problem step by step and provide the final simplified answer.\n\nProblem: Find the area of a circle with radius 5 meters\n\nOutput:\n1. Step-by-step reasoning\n2. Final answer in simplest form\n"
                 }
+            }
+        ]
+    }
+}
+```
+
+## Resource
+
+### List Resources
+
+```json
+// Request
+{
+    "jsonrpc": "2.0",
+    "id": "resource-1",
+    "method": "resources/list",
+    "params": {}
+}
+
+// Responses
+{
+    "jsonrpc": "2.0",
+    "id": "resource-1",
+    "result": {
+        "resources": [
+            {
+                "name": "get_geometry_formulas",
+                "uri": "math://formulas/geometry",
+                "description": "Geometry formulas reference for all types"
+            }
+        ]
+    }
+}
+```
+
+### List Resource Templates
+
+```json
+// Request
+{
+    "jsonrpc": "2.0",
+    "id": "resource-2",
+    "method": "resources/templates/list",
+    "params": {}
+}
+
+// Responses
+{
+    "jsonrpc": "2.0",
+    "id": "resource-2",
+    "result": {
+        "resourceTemplates": [
+            {
+                "name": "get_geometry_formula",
+                "uriTemplate": "math://formulas/geometry/{formula_type}",
+                "description": "Get a geometry formula by type (Area, Volume, etc.)"
+            }
+        ]
+    }
+}
+```
+
+### Read Resource
+
+```json
+// Request
+{
+    "jsonrpc": "2.0",
+    "id": "resource-3",
+    "method": "resources/read",
+    "params": {
+        "uri": "math://formulas/geometry"
+    }
+}
+
+// Responses
+{
+    "jsonrpc": "2.0",
+    "id": "resource-3",
+    "result": {
+        "contents": [
+            {
+                "uri": "math://formulas/geometry",
+                "mimeType": "text/plain",
+                "text": "{\n  \"Area\": {\n    \"rectangle\": \"A = length * width\",\n    \"triangle\": \"A = (1/2) * base * height\",\n    \"circle\": \"A = πr²\",\n    \"trapezoid\": \"A = (1/2)(b₁ + b₂)h\"\n  },\n  \"Volume\": {\n    \"cube\": \"V = s³\",\n    \"rectangular_prism\": \"V = length * width * height\",\n    \"cylinder\": \"V = πr²h\",\n    \"sphere\": \"V = (4/3)πr³\"\n  }\n}"
+            }
+        ]
+    }
+}
+```
+
+### Read Resource Template
+
+```json
+// Request
+{
+    "jsonrpc": "2.0",
+    "id": "resource-4",
+    "method": "resources/read",
+    "params": {
+        "uri": "math://formulas/geometry/Volume"
+    }
+}
+
+// Responses
+{
+    "jsonrpc": "2.0",
+    "id": "resource-4",
+    "result": {
+        "contents": [
+            {
+                "uri": "math://formulas/geometry/Volume",
+                "mimeType": "text/plain",
+                "text": "{\n  \"cube\": \"V = s³\",\n  \"rectangular_prism\": \"V = length * width * height\",\n  \"cylinder\": \"V = πr²h\",\n  \"sphere\": \"V = (4/3)πr³\"\n}"
             }
         ]
     }

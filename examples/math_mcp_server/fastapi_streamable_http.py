@@ -31,6 +31,13 @@ async def add(
     return a + b
 
 
+@math_mcp.tool(description="Subtract two numbers")
+def subtract(
+    a: float = Field(description="The first float number"), b: float = Field(description="The second float number")
+) -> float:
+    return a - b
+
+
 @app.post("/mcp")
 async def handle_mcp_request(request: Request):
     return await starlette.streamable_http_transport(math_mcp.handle, request)
