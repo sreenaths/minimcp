@@ -18,7 +18,7 @@ from minimcp.server.exceptions import (
     UnsupportedRPCMessageType,
 )
 from minimcp.server.limiter import Limiter
-from minimcp.server.managers.context_manager import ContextManager, ScopeT
+from minimcp.server.managers.context_manager import Context, ContextManager, ScopeT
 from minimcp.server.managers.prompt_manager import PromptManager
 from minimcp.server.managers.resource_manager import ResourceManager
 from minimcp.server.managers.tool_manager import ToolManager
@@ -109,7 +109,8 @@ class MiniMCP(Generic[ScopeT]):
 
             async with self._limiter() as time_limiter:
                 responder = Responder(message, send, time_limiter) if send else None
-                with self.context.active(rpc_msg, scope, responder):
+                context = Context(message=rpc_msg, time_limiter=time_limiter, scope=scope, responder=responder)
+                with self.context.active(context):
                     response = await self._handle_rpc_msg(rpc_msg)
 
         # --- Centralized MCP error handling - Handle all MCP/JSON-RPC exceptions here ---

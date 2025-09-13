@@ -7,6 +7,7 @@ from typing import Generic, TypeVar
 from mcp.types import JSONRPCMessage
 
 from minimcp.server.exceptions import ContextError
+from minimcp.server.limiter import TimeLimiter
 from minimcp.server.responder import Responder
 
 logger = logging.getLogger(__name__)
@@ -18,6 +19,7 @@ ScopeT = TypeVar("ScopeT", bound=object)
 @dataclass
 class Context(Generic[ScopeT]):
     message: JSONRPCMessage
+    time_limiter: TimeLimiter
     scope: ScopeT | None = None
     responder: Responder | None = None
 
@@ -26,10 +28,7 @@ class ContextManager(Generic[ScopeT]):
     _ctx: ContextVar[Context[ScopeT]] = ContextVar("ctx")
 
     @contextmanager
-    def active(self, message: JSONRPCMessage, scope: ScopeT | None = None, responder: Responder | None = None):
-        # Build context
-        context = Context(message=message, scope=scope, responder=responder)
-
+    def active(self, context: Context[ScopeT]):
         # Set context
         token: Token = self._ctx.set(context)
         try:
