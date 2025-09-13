@@ -1,3 +1,3 @@
-from .server import MiniMCP
+from .minimcp import MiniMCP
 
 __all__ = ["MiniMCP"]
