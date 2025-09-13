@@ -42,7 +42,10 @@ class HTTPTransportBase:
         """
         Get the HTTP status code for a JSON-RPC message.
         """
-        response_dict = json.loads(msg)
+        try:
+            response_dict = json.loads(msg)
+        except JSONDecodeError:
+            return HTTPStatus.INTERNAL_SERVER_ERROR
 
         if not isinstance(response_dict, dict):
             return HTTPStatus.INTERNAL_SERVER_ERROR
