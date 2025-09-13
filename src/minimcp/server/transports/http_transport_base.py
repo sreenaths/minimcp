@@ -3,19 +3,20 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from http import HTTPStatus
 from json.decoder import JSONDecodeError
-from typing import Any
 
 import mcp.types as types
+from anyio.streams.memory import MemoryObjectReceiveStream
 from mcp.shared.version import SUPPORTED_PROTOCOL_VERSIONS
 
 from minimcp.server import json_rpc
-from minimcp.server.types import Message
+from minimcp.server.types import Message, NoMessage
+from minimcp.utils.model import to_json
 
 
 @dataclass
 class HTTPResult:
     status_code: HTTPStatus
-    content: Any | None = None
+    content: Message | NoMessage | MemoryObjectReceiveStream[Message] | None = None
     media_type: str | None = None
     headers: Mapping[str, str] | None = None
 
@@ -106,5 +107,5 @@ class HTTPTransportBase:
 
     def _build_error_result(self, status_code: HTTPStatus, err_msg: str) -> HTTPResult:
         err = ValueError(err_msg)
-        content = json_rpc.build_error_message(types.INVALID_REQUEST, "", err)
+        content = to_json(json_rpc.build_error_message(types.INVALID_REQUEST, "", err))
         return HTTPResult(status_code, content, CONTENT_TYPE_JSON)
