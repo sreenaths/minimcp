@@ -163,9 +163,9 @@ class MiniMCP(Generic[ScopeT]):
         if isinstance(msg_root, types.JSONRPCRequest):
             client_request = types.ClientRequest.model_validate(to_dict(msg_root))
 
-            logger.debug(f"Handling request {msg_root.id} - {client_request}")
+            logger.debug("Handling request %s - %s", msg_root.id, client_request)
             response = await self._handle_client_request(client_request)
-            logger.info(f"Successfully handled request {msg_root.id} - Response: {response}")
+            logger.info("Successfully handled request %s - Response: %s", msg_root.id, response)
 
             return json_rpc.build_response_message(msg_root.id, response)
 
@@ -175,9 +175,9 @@ class MiniMCP(Generic[ScopeT]):
             client_notification = types.ClientNotification.model_validate(to_dict(msg_root))
             notification_id = uuid.uuid4()  # Creating an id for debugging
 
-            logger.debug(f"Handling notification {notification_id} - {client_notification}")
+            logger.debug("Handling notification %s - %s", notification_id, client_notification)
             response = await self._handle_client_notification(client_notification)
-            logger.info(f"Successfully handled notification {notification_id}")
+            logger.info("Successfully handled notification %s", notification_id)
 
             return response
         else:

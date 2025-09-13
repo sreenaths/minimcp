@@ -1,4 +1,5 @@
 import json
+import logging
 from collections.abc import Mapping
 from dataclasses import dataclass
 from http import HTTPStatus
@@ -32,6 +33,8 @@ JSON_RPC_TO_HTTP_STATUS_CODES: dict[int, HTTPStatus] = {
 MCP_PROTOCOL_VERSION_HEADER = "MCP-Protocol-Version"
 
 CONTENT_TYPE_JSON = "application/json"
+
+logger = logging.getLogger(__name__)
 
 
 class HTTPTransportBase:
@@ -87,7 +90,7 @@ class HTTPTransportBase:
                 # Ignore protocol version validation for initialize request
                 return None
         except JSONDecodeError:
-            # Ignore JSON parse error. Let the handler return correct error response.
+            logger.debug("JSONDecodeError: Ignoring for the handler to return correct error response.")
             pass
 
         # If no protocol version provided, assume default version as per the specification
@@ -108,4 +111,6 @@ class HTTPTransportBase:
     def _build_error_result(self, status_code: HTTPStatus, err_msg: str) -> HTTPResult:
         err = ValueError(err_msg)
         content = to_json(json_rpc.build_error_message(types.INVALID_REQUEST, "", err))
+
+        logger.debug("Building error result with HTTP status code %s and error message %s", status_code, err_msg)
         return HTTPResult(status_code, content, CONTENT_TYPE_JSON)

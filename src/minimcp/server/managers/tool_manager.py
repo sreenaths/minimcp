@@ -1,5 +1,6 @@
 import builtins
 import inspect
+import logging
 from collections.abc import Callable
 from functools import partial
 from typing import Any
@@ -9,6 +10,8 @@ from mcp.server.lowlevel.server import CombinationContent, Server, StructuredCon
 from typing_extensions import TypedDict, Unpack
 
 from minimcp.utils.func import FuncDetails, extract_func_details, validate_func_name
+
+logger = logging.getLogger(__name__)
 
 
 class ToolOptions(TypedDict, total=False):
@@ -67,6 +70,7 @@ class ToolManager:
         )
 
         self._tools[tool_name] = (tool, func, details)
+        logger.debug("Tool %s added", tool_name)
 
         return tool
 
@@ -77,6 +81,7 @@ class ToolManager:
         if name not in self._tools:
             raise ValueError(f"Tool {name} not found")
 
+        logger.debug("Removing tool %s", name)
         return self._tools.pop(name)[0]
 
     async def _async_list(self) -> builtins.list[types.Tool]:
@@ -105,4 +110,5 @@ class ToolManager:
         if inspect.iscoroutine(result):
             result = await result
 
+        logger.debug("Tool %s handled with args %s", name, args)
         return details.meta.convert_result(result)

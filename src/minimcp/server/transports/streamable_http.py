@@ -114,6 +114,8 @@ class StreamableHTTPTransport(HTTPTransportBase):
     async def _handle_post_request(
         self, handler: StreamableHTTPRequestHandler, headers: Mapping[str, str], body: str
     ) -> HTTPResult:
+        logger.debug("Handling POST request. Headers: %s, Body: %s", headers, body)
+
         if result := self._check_accept_headers(headers, {CONTENT_TYPE_JSON, CONTENT_TYPE_SSE}):
             return result
         if result := self._check_content_type(headers):
@@ -125,6 +127,7 @@ class StreamableHTTPTransport(HTTPTransportBase):
             raise RuntimeError("StreamableHTTPTransport was not started")
 
         response = await self._tg.start(self._runner, handler, body)
+        logger.debug("Handled request successfully. Response: %s", response)
 
         if isinstance(response, MemoryObjectReceiveStream):
             return HTTPResult(HTTPStatus.OK, response, headers=SSE_HEADERS)
