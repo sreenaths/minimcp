@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- omit in toc -->
-# ✨ MiniMCP (Generated)
+# ✨ MiniMCP
 
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
@@ -23,7 +23,7 @@ MiniMCP provides an asynchronous handle function that accepts a JSON-RPC message
 ### Key Features
 
 - 🔗 Easy to embed into existing servers, CLI tools, or background workers
-- 🛠 Passing metadata and managing context per request
+- 🛠 Passing typed scope and managing context per request
 - ⚡ Asynchronous, stateless message processing (stateless between requests)
 - 📝 Easy handler registration for different MCP message types
 - 🧩 Separation of concerns: transport layer is completely separate from message handling
@@ -31,9 +31,10 @@ MiniMCP provides an asynchronous handle function that accepts a JSON-RPC message
 
 ### Non-Features
 
-- 🚫 Session management — _Easily build your own with metadata and context_
+- 🚫 Session management — _Easily build your own with scope and context_
 - 🚫 Authentication — _Use your existing authentication system_
 - 🚫 No server-initiated messaging
+- 🚫 Pagination support
 
 ## Using MiniMCP
 
