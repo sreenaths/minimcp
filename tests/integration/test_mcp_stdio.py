@@ -16,12 +16,12 @@ from mcp.types import TextContent, TextResourceContents
 async def mcp_client() -> AsyncGenerator[Client[PythonStdioTransport], None]:
     """Create and manage an MCP client connected to our test server."""
     # Get the path to our test server script
-    test_server_path = Path(__file__).parent / "math_server_stdio.py"
+    test_server_path = Path(__file__).parent / "servers/stdio_server.py"
 
     # Create the transport
     transport = PythonStdioTransport(
         script_path=str(test_server_path),
-        env={**os.environ, "MCP_SERVER_LOG_FILE": "test_integration.log"},
+        env={**os.environ, "MCP_SERVER_LOG_FILE": "stdio_client.log"},
         cwd=str(Path(__file__).parent.parent.parent),  # Project root
         keep_alive=False,
     )
