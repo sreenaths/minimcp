@@ -2,10 +2,10 @@ import json
 from http import HTTPStatus
 
 import pytest
+from mcp import types
 
 from minimcp.server.transports.http_transport_base import (
     CONTENT_TYPE_JSON,
-    JSON_RPC_TO_HTTP_STATUS_CODES,
     MCP_PROTOCOL_VERSION_HEADER,
     HTTPResult,
     HTTPTransportBase,
@@ -41,75 +41,10 @@ class TestHTTPTransportBase:
         assert result.media_type == "application/json"
         assert result.headers == {"Custom-Header": "value"}
 
-    def test_json_rpc_to_http_status_codes_mapping(self):
-        """Test JSON-RPC error code to HTTP status code mapping."""
-        import mcp.types as types
-
-        assert JSON_RPC_TO_HTTP_STATUS_CODES[types.PARSE_ERROR] == HTTPStatus.BAD_REQUEST
-        assert JSON_RPC_TO_HTTP_STATUS_CODES[types.INVALID_REQUEST] == HTTPStatus.BAD_REQUEST
-        assert JSON_RPC_TO_HTTP_STATUS_CODES[types.INVALID_PARAMS] == HTTPStatus.BAD_REQUEST
-        assert JSON_RPC_TO_HTTP_STATUS_CODES[types.METHOD_NOT_FOUND] == HTTPStatus.NOT_FOUND
-        assert JSON_RPC_TO_HTTP_STATUS_CODES[types.INTERNAL_ERROR] == HTTPStatus.INTERNAL_SERVER_ERROR
-
     def test_constants(self):
         """Test module constants."""
         assert MCP_PROTOCOL_VERSION_HEADER == "MCP-Protocol-Version"
         assert CONTENT_TYPE_JSON == "application/json"
-
-    def test_get_status_code_success_response(self, transport_base):
-        """Test _get_status_code with successful response."""
-        success_response = json.dumps({"jsonrpc": "2.0", "result": "success", "id": 1})
-
-        status = transport_base._get_status_code(success_response)
-        assert status == HTTPStatus.OK
-
-    def test_get_status_code_error_responses(self, transport_base):
-        """Test _get_status_code with various error responses."""
-        # Parse error
-        parse_error = json.dumps({"jsonrpc": "2.0", "error": {"code": -32700, "message": "Parse error"}, "id": None})
-        status = transport_base._get_status_code(parse_error)
-        assert status == HTTPStatus.BAD_REQUEST
-
-        # Method not found
-        method_not_found = json.dumps(
-            {"jsonrpc": "2.0", "error": {"code": -32601, "message": "Method not found"}, "id": 1}
-        )
-        status = transport_base._get_status_code(method_not_found)
-        assert status == HTTPStatus.NOT_FOUND
-
-        # Internal error
-        internal_error = json.dumps({"jsonrpc": "2.0", "error": {"code": -32603, "message": "Internal error"}, "id": 1})
-        status = transport_base._get_status_code(internal_error)
-        assert status == HTTPStatus.INTERNAL_SERVER_ERROR
-
-    def test_get_status_code_unknown_error(self, transport_base):
-        """Test _get_status_code with unknown error code."""
-        unknown_error = json.dumps({"jsonrpc": "2.0", "error": {"code": -99999, "message": "Unknown error"}, "id": 1})
-
-        status = transport_base._get_status_code(unknown_error)
-        assert status == HTTPStatus.INTERNAL_SERVER_ERROR
-
-    def test_get_status_code_malformed_json(self, transport_base):
-        """Test _get_status_code with malformed JSON."""
-        malformed_json = "not valid json"
-
-        # Should handle JSON decode error gracefully and return 500
-        status = transport_base._get_status_code(malformed_json)
-        assert status == HTTPStatus.INTERNAL_SERVER_ERROR
-
-    def test_get_status_code_non_dict_response(self, transport_base):
-        """Test _get_status_code with non-dictionary JSON."""
-        non_dict_response = json.dumps(["not", "a", "dict"])
-
-        status = transport_base._get_status_code(non_dict_response)
-        assert status == HTTPStatus.INTERNAL_SERVER_ERROR
-
-    def test_get_status_code_error_without_code(self, transport_base):
-        """Test _get_status_code with error object missing code."""
-        error_without_code = json.dumps({"jsonrpc": "2.0", "error": {"message": "Error without code"}, "id": 1})
-
-        status = transport_base._get_status_code(error_without_code)
-        assert status == HTTPStatus.INTERNAL_SERVER_ERROR
 
     def test_handle_unsupported_request(self, transport_base):
         """Test _handle_unsupported_request method."""
@@ -262,7 +197,7 @@ class TestHTTPTransportBase:
         status_code = HTTPStatus.BAD_REQUEST
         error_message = "Test error message"
 
-        result = transport_base._build_error_result(status_code, error_message)
+        result = transport_base._build_error_result(status_code, types.PARSE_ERROR, error_message)
 
         assert result.status_code == status_code
         assert result.media_type == CONTENT_TYPE_JSON
@@ -284,7 +219,7 @@ class TestHTTPTransportBase:
         ]
 
         for status_code, message in test_cases:
-            result = transport_base._build_error_result(status_code, message)
+            result = transport_base._build_error_result(status_code, types.PARSE_ERROR, message)
             assert result.status_code == status_code
             assert message in result.content
 
@@ -325,3 +260,158 @@ class TestHTTPTransportBase:
         # Content-Type header test
         result = transport_base._check_content_type(headers)
         assert result is None
+
+    def test_validate_request_body_valid_json_rpc(self, transport_base):
+        """Test _validate_request_body with valid JSON-RPC request."""
+        body = '{"jsonrpc": "2.0", "method": "test", "id": 1}'
+
+        result = transport_base._validate_request_body(body)
+        assert result is None
+
+    def test_validate_request_body_valid_json_rpc_with_params(self, transport_base):
+        """Test _validate_request_body with valid JSON-RPC request including params."""
+        body = '{"jsonrpc": "2.0", "method": "test", "params": {"key": "value"}, "id": 1}'
+
+        result = transport_base._validate_request_body(body)
+        assert result is None
+
+    def test_validate_request_body_valid_notification(self, transport_base):
+        """Test _validate_request_body with valid JSON-RPC notification (no id)."""
+        body = '{"jsonrpc": "2.0", "method": "notification"}'
+
+        result = transport_base._validate_request_body(body)
+        assert result is None
+
+    def test_validate_request_body_invalid_json(self, transport_base):
+        """Test _validate_request_body with invalid JSON."""
+        body = "not valid json"
+
+        result = transport_base._validate_request_body(body)
+        assert result is not None
+        assert result.status_code == HTTPStatus.BAD_REQUEST
+        assert "Invalid JSON" in result.content
+
+        # Parse the error response to check error code
+        error_response = json.loads(result.content)
+        assert error_response["error"]["code"] == types.PARSE_ERROR
+
+    def test_validate_request_body_empty_json(self, transport_base):
+        """Test _validate_request_body with empty JSON."""
+        body = ""
+
+        result = transport_base._validate_request_body(body)
+        assert result is not None
+        assert result.status_code == HTTPStatus.BAD_REQUEST
+        assert "Invalid JSON" in result.content
+
+    def test_validate_request_body_json_array(self, transport_base):
+        """Test _validate_request_body with JSON array instead of object."""
+        body = '[{"jsonrpc": "2.0", "method": "test", "id": 1}]'
+
+        result = transport_base._validate_request_body(body)
+        assert result is not None
+        assert result.status_code == HTTPStatus.BAD_REQUEST
+        assert "not a dictionary" in result.content
+
+        # Parse the error response to check error code
+        error_response = json.loads(result.content)
+        assert error_response["error"]["code"] == types.PARSE_ERROR
+
+    def test_validate_request_body_json_string(self, transport_base):
+        """Test _validate_request_body with JSON string instead of object."""
+        body = '"just a string"'
+
+        result = transport_base._validate_request_body(body)
+        assert result is not None
+        assert result.status_code == HTTPStatus.BAD_REQUEST
+        assert "not a dictionary" in result.content
+
+    def test_validate_request_body_json_number(self, transport_base):
+        """Test _validate_request_body with JSON number instead of object."""
+        body = "42"
+
+        result = transport_base._validate_request_body(body)
+        assert result is not None
+        assert result.status_code == HTTPStatus.BAD_REQUEST
+        assert "not a dictionary" in result.content
+
+    def test_validate_request_body_missing_jsonrpc(self, transport_base):
+        """Test _validate_request_body with missing jsonrpc field."""
+        body = '{"method": "test", "id": 1}'
+
+        result = transport_base._validate_request_body(body)
+        assert result is not None
+        assert result.status_code == HTTPStatus.BAD_REQUEST
+        assert "Not a JSON-RPC message" in result.content
+
+        # Parse the error response to check error code
+        error_response = json.loads(result.content)
+        assert error_response["error"]["code"] == types.INVALID_PARAMS
+
+    def test_validate_request_body_wrong_jsonrpc_version(self, transport_base):
+        """Test _validate_request_body with wrong JSON-RPC version."""
+        body = '{"jsonrpc": "1.0", "method": "test", "id": 1}'
+
+        result = transport_base._validate_request_body(body)
+        assert result is not None
+        assert result.status_code == HTTPStatus.BAD_REQUEST
+        assert "Not a JSON-RPC 2.0 message" in result.content
+
+        # Parse the error response to check error code
+        error_response = json.loads(result.content)
+        assert error_response["error"]["code"] == types.INVALID_PARAMS
+
+    def test_validate_request_body_null_jsonrpc(self, transport_base):
+        """Test _validate_request_body with null jsonrpc field."""
+        body = '{"jsonrpc": null, "method": "test", "id": 1}'
+
+        result = transport_base._validate_request_body(body)
+        assert result is not None
+        assert result.status_code == HTTPStatus.BAD_REQUEST
+        assert "Not a JSON-RPC 2.0 message" in result.content
+
+    def test_validate_request_body_empty_object(self, transport_base):
+        """Test _validate_request_body with empty JSON object."""
+        body = "{}"
+
+        result = transport_base._validate_request_body(body)
+        assert result is not None
+        assert result.status_code == HTTPStatus.BAD_REQUEST
+        assert "Not a JSON-RPC message" in result.content
+
+    def test_validate_request_body_extra_fields(self, transport_base):
+        """Test _validate_request_body with extra fields (should be valid)."""
+        body = '{"jsonrpc": "2.0", "method": "test", "id": 1, "extra": "field"}'
+
+        result = transport_base._validate_request_body(body)
+        assert result is None  # Extra fields should be allowed
+
+    def test_validate_request_body_unicode_content(self, transport_base):
+        """Test _validate_request_body with unicode content."""
+        body = '{"jsonrpc": "2.0", "method": "test", "params": {"message": "Hello 世界"}, "id": 1}'
+
+        result = transport_base._validate_request_body(body)
+        assert result is None
+
+    def test_validate_request_body_nested_objects(self, transport_base):
+        """Test _validate_request_body with nested objects in params."""
+        body = '{"jsonrpc": "2.0", "method": "test", "params": {"nested": {"deep": {"value": 42}}}, "id": 1}'
+
+        result = transport_base._validate_request_body(body)
+        assert result is None
+
+    def test_validate_request_body_malformed_json_cases(self, transport_base):
+        """Test _validate_request_body with various malformed JSON cases."""
+        malformed_cases = [
+            '{"jsonrpc": "2.0", "method": "test", "id": 1',  # Missing closing brace
+            '{"jsonrpc": "2.0", "method": "test", "id": 1,}',  # Trailing comma
+            '{"jsonrpc": "2.0", "method": "test", "id": }',  # Missing value
+            '{jsonrpc: "2.0", "method": "test", "id": 1}',  # Unquoted key
+            '{"jsonrpc": "2.0", "method": \'test\', "id": 1}',  # Single quotes
+        ]
+
+        for malformed_body in malformed_cases:
+            result = transport_base._validate_request_body(malformed_body)
+            assert result is not None
+            assert result.status_code == HTTPStatus.BAD_REQUEST
+            assert "Invalid JSON" in result.content

@@ -81,7 +81,7 @@ class TestStarletteTransports:
         response = await http_transport(handler, mock_request)
 
         assert isinstance(response, Response)
-        assert response.status_code == 400  # Bad Request for -32600
+        assert response.status_code == 200
         assert bytes(response.body).decode() == error_response
 
     @pytest.mark.asyncio

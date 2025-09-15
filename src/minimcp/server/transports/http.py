@@ -30,12 +30,13 @@ class HTTPTransport(HTTPTransportBase):
             return result
         if result := self._validate_protocol_version(headers, body):
             return result
+        if result := self._validate_request_body(body):
+            return result
 
         response = await handler(body)
-        logger.debug("Handled request successfully. Response: %s", response)
+        logger.debug("Handling completed. Response: %s", response)
 
         if isinstance(response, NoMessage):
             return HTTPResult(HTTPStatus.ACCEPTED)
 
-        status_code = self._get_status_code(response)
-        return HTTPResult(status_code, response, CONTENT_TYPE_JSON)
+        return HTTPResult(HTTPStatus.OK, response, CONTENT_TYPE_JSON)

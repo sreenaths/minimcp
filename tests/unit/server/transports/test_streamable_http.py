@@ -145,7 +145,7 @@ class TestStreamableHTTPTransport:
         async with transport:
             result = await transport.dispatch(handler, "POST", valid_headers, valid_body)
 
-        assert result.status_code == HTTPStatus.BAD_REQUEST
+        assert result.status_code == HTTPStatus.OK
         assert result.content == error_response
         assert result.media_type == "application/json"
 
@@ -158,7 +158,7 @@ class TestStreamableHTTPTransport:
             result = await transport.dispatch(handler, "POST", valid_headers, valid_body)
 
         # Should return an error response
-        assert result.status_code == HTTPStatus.INTERNAL_SERVER_ERROR
+        assert result.status_code == HTTPStatus.OK
         assert result.content is not None
         assert "error" in result.content
         handler.assert_called_once()
@@ -403,15 +403,12 @@ class TestStreamableHTTPTransport:
     async def test_dispatch_with_malformed_json_body(self, transport, valid_headers):
         """Test dispatch with malformed JSON in request body."""
         malformed_body = '{"jsonrpc": "2.0", "method": "test", invalid json'
-        handler = AsyncMock(return_value='{"jsonrpc": "2.0", "result": "ok", "id": 1}')
 
         async with transport:
             # Should still call the handler - JSON validation is done at handler level
-            result = await transport.dispatch(handler, "POST", valid_headers, malformed_body)
+            result = await transport.dispatch(None, "POST", valid_headers, malformed_body)
 
-        # The transport should pass through the malformed JSON to the handler
-        handler.assert_called_once()
-        assert result.status_code == HTTPStatus.OK
+        assert result.status_code == HTTPStatus.BAD_REQUEST
 
     @pytest.mark.asyncio
     async def test_initialize_request_skips_version_check(self, transport):

@@ -22,14 +22,6 @@ class HTTPResult:
     headers: Mapping[str, str] | None = None
 
 
-JSON_RPC_TO_HTTP_STATUS_CODES: dict[int, HTTPStatus] = {
-    types.PARSE_ERROR: HTTPStatus.BAD_REQUEST,
-    types.INVALID_REQUEST: HTTPStatus.BAD_REQUEST,
-    types.INVALID_PARAMS: HTTPStatus.BAD_REQUEST,
-    types.METHOD_NOT_FOUND: HTTPStatus.NOT_FOUND,
-    types.INTERNAL_ERROR: HTTPStatus.INTERNAL_SERVER_ERROR,
-}
-
 MCP_PROTOCOL_VERSION_HEADER = "MCP-Protocol-Version"
 
 CONTENT_TYPE_JSON = "application/json"
@@ -38,24 +30,6 @@ logger = logging.getLogger(__name__)
 
 
 class HTTPTransportBase:
-    def _get_status_code(self, msg: Message) -> HTTPStatus:
-        """
-        Get the HTTP status code for a JSON-RPC message.
-        """
-        try:
-            response_dict = json.loads(msg)
-        except JSONDecodeError:
-            return HTTPStatus.INTERNAL_SERVER_ERROR
-
-        if not isinstance(response_dict, dict):
-            return HTTPStatus.INTERNAL_SERVER_ERROR
-
-        if "error" not in response_dict:
-            return HTTPStatus.OK
-
-        json_rpc_error_code = response_dict["error"].get("code", 0)
-        return JSON_RPC_TO_HTTP_STATUS_CODES.get(json_rpc_error_code, HTTPStatus.INTERNAL_SERVER_ERROR)
-
     def _handle_unsupported_request(self, supported_methods: set[str]) -> HTTPResult:
         headers = {
             "Content-Type": CONTENT_TYPE_JSON,
@@ -70,7 +44,9 @@ class HTTPTransportBase:
 
         if not needed_content_types.issubset(accepted_types):
             return self._build_error_result(
-                HTTPStatus.NOT_ACCEPTABLE, "Not Acceptable: Client must accept " + " and ".join(needed_content_types)
+                HTTPStatus.NOT_ACCEPTABLE,
+                types.INVALID_REQUEST,
+                "Not Acceptable: Client must accept " + " and ".join(needed_content_types),
             )
 
         return None
@@ -81,7 +57,9 @@ class HTTPTransportBase:
 
         if content_type != CONTENT_TYPE_JSON:
             return self._build_error_result(
-                HTTPStatus.UNSUPPORTED_MEDIA_TYPE, "Unsupported Media Type: Content-Type must be " + CONTENT_TYPE_JSON
+                HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+                types.INVALID_REQUEST,
+                "Unsupported Media Type: Content-Type must be " + CONTENT_TYPE_JSON,
             )
 
         return None
@@ -105,15 +83,42 @@ class HTTPTransportBase:
             supported_versions = ", ".join(SUPPORTED_PROTOCOL_VERSIONS)
             return self._build_error_result(
                 HTTPStatus.BAD_REQUEST,
+                types.INVALID_REQUEST,
                 f"Bad Request: Unsupported protocol version: {protocol_version}. "
                 + f"Supported versions: {supported_versions}",
             )
 
         return None
 
-    def _build_error_result(self, status_code: HTTPStatus, err_msg: str) -> HTTPResult:
+    def _validate_request_body(self, body: str) -> HTTPResult | None:
+        try:
+            request_obj = json.loads(body)
+        except JSONDecodeError:
+            return self._build_error_result(HTTPStatus.BAD_REQUEST, types.PARSE_ERROR, "Bad Request: Invalid JSON")
+
+        if not isinstance(request_obj, dict):
+            return self._build_error_result(
+                HTTPStatus.BAD_REQUEST, types.PARSE_ERROR, "Bad Request: Invalid JSON - not a dictionary"
+            )
+
+        if "jsonrpc" not in request_obj:
+            return self._build_error_result(
+                HTTPStatus.BAD_REQUEST, types.INVALID_PARAMS, "Bad Request: Invalid JSON - Not a JSON-RPC message"
+            )
+
+        if request_obj["jsonrpc"] != json_rpc.JSON_RPC_VERSION:
+            return self._build_error_result(
+                HTTPStatus.BAD_REQUEST, types.INVALID_PARAMS, "Bad Request: Invalid JSON - Not a JSON-RPC 2.0 message"
+            )
+
+        return None
+
+    def _build_error_result(self, status_code: HTTPStatus, err_code: int, err_msg: str) -> HTTPResult:
+        """
+        Build an error result with the given status code, JSON-RPC error code, and error message.
+        """
         err = ValueError(err_msg)
-        content = to_json(json_rpc.build_error_message(types.INVALID_REQUEST, "", err))
+        content = to_json(json_rpc.build_error_message(err_code, "", err))
 
         logger.debug("Building error result with HTTP status code %s and error message %s", status_code, err_msg)
         return HTTPResult(status_code, content, CONTENT_TYPE_JSON)
