@@ -27,7 +27,14 @@ uv run pre-commit install
 3. Ensure tests pass:
 
 ```bash
+# Run both unit and integration tests
 uv run pytest
+
+# Run just UTs
+uv run pytest tests/unit
+
+# Run just integration tests
+uv run pytest tests/integration
 ```
 
 4. Run type checking:
