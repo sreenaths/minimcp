@@ -3,8 +3,6 @@ from enum import Enum
 
 Message = str
 
-Send = Callable[[Message], Awaitable[None]]
-
 
 class NoMessage(Enum):
     """
@@ -14,3 +12,6 @@ class NoMessage(Enum):
 
     NOTIFICATION = "notification"  # Response to a client notification
     RESPONSE = "response"  # Response to a client request
+
+
+Send = Callable[[Message], Awaitable[None]]
