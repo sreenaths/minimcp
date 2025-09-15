@@ -16,7 +16,7 @@ from minimcp.utils.func import extract_func_details, validate_func_name
 logger = logging.getLogger(__name__)
 
 
-class PromptOptions(TypedDict, total=False):
+class PromptDefinition(TypedDict, total=False):
     name: str | None
     title: str | None
     description: str | None
@@ -35,13 +35,13 @@ class PromptManager:
         core.get_prompt()(self.get)
         # core.complete()(self._async_complete) # TODO: Implement completion for prompts
 
-    def __call__(self, **kwargs: Unpack[PromptOptions]) -> Callable[[Callable], Prompt]:
+    def __call__(self, **kwargs: Unpack[PromptDefinition]) -> Callable[[Callable], Prompt]:
         """
         Decorator to add a prompt to the MCP prompt manager.
         """
         return partial(self.add, **kwargs)
 
-    def add(self, func: AnyFunction, **kwargs: Unpack[PromptOptions]) -> Prompt:
+    def add(self, func: AnyFunction, **kwargs: Unpack[PromptDefinition]) -> Prompt:
         """
         Add a prompt to the MCP prompt manager.
         """

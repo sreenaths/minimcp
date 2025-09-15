@@ -5,7 +5,7 @@ import mcp.types as types
 import pytest
 from mcp.server.lowlevel.server import Server
 
-from minimcp.server.managers.prompt_manager import PromptManager, PromptOptions
+from minimcp.server.managers.prompt_manager import PromptDefinition, PromptManager
 
 
 class TestPromptManager:
@@ -370,9 +370,9 @@ class TestPromptManager:
             await prompt_manager.get("failing_prompt", {"should_fail": "yes"})
 
     def test_prompt_options_typed_dict(self):
-        """Test PromptOptions TypedDict structure."""
+        """Test PromptDefinition TypedDict structure."""
         # This tests the type structure - mainly for documentation
-        options: PromptOptions = {
+        options: PromptDefinition = {
             "name": "test_name",
             "title": "Test Title",
             "description": "test_description",

@@ -7,7 +7,7 @@ import pytest
 from mcp.server.lowlevel.helper_types import ReadResourceContents
 from mcp.server.lowlevel.server import Server
 
-from minimcp.server.managers.resource_manager import ResourceManager, ResourceOptions, _uri_to_pattern
+from minimcp.server.managers.resource_manager import ResourceDefinition, ResourceManager, _uri_to_pattern
 
 
 class TestResourceManager:
@@ -458,9 +458,9 @@ class TestResourceManager:
             await resource_manager.read("file://failing.txt")
 
     def test_resource_options_typed_dict(self):
-        """Test ResourceOptions TypedDict structure."""
+        """Test ResourceDefinition TypedDict structure."""
         # This tests the type structure - mainly for documentation
-        options: ResourceOptions = {
+        options: ResourceDefinition = {
             "title": "Test Title",
             "description": "test_description",
             "mimeType": "text/plain",

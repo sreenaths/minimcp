@@ -7,7 +7,7 @@ import pytest
 from mcp.server.lowlevel.server import Server
 from pydantic import ValidationError
 
-from minimcp.server.managers.tool_manager import ToolManager, ToolOptions
+from minimcp.server.managers.tool_manager import ToolDefinition, ToolManager
 
 
 class TestToolManager:
@@ -314,9 +314,9 @@ class TestToolManager:
             await tool_manager.call("strict_tool", {"invalid_int": 42})
 
     def test_tool_options_typed_dict(self):
-        """Test ToolOptions TypedDict structure."""
+        """Test ToolDefinition TypedDict structure."""
         # This tests the type structure - mainly for documentation
-        options: ToolOptions = {
+        options: ToolDefinition = {
             "name": "test_name",
             "description": "test_description",
             "annotations": types.ToolAnnotations(title="test"),

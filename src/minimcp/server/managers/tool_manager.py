@@ -14,7 +14,7 @@ from minimcp.utils.func import FuncDetails, extract_func_details, validate_func_
 logger = logging.getLogger(__name__)
 
 
-class ToolOptions(TypedDict, total=False):
+class ToolDefinition(TypedDict, total=False):
     name: str | None
     title: str | None
     description: str | None
@@ -40,13 +40,13 @@ class ToolManager:
         # TODO: Ensure only one validation is required
         core.call_tool(validate_input=False)(self.call)
 
-    def __call__(self, **kwargs: Unpack[ToolOptions]) -> Callable[[Callable], types.Tool]:
+    def __call__(self, **kwargs: Unpack[ToolDefinition]) -> Callable[[Callable], types.Tool]:
         """
         Decorator to add a tool to the MCP tool manager.
         """
         return partial(self.add, **kwargs)
 
-    def add(self, func: types.AnyFunction, **kwargs: Unpack[ToolOptions]) -> types.Tool:
+    def add(self, func: types.AnyFunction, **kwargs: Unpack[ToolDefinition]) -> types.Tool:
         """
         Add a tool to the MCP tool manager.
         """

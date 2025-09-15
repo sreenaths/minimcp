@@ -18,7 +18,7 @@ from minimcp.utils.func import extract_func_details, validate_func_name
 logger = logging.getLogger(__name__)
 
 
-class ResourceOptions(TypedDict, total=False):
+class ResourceDefinition(TypedDict, total=False):
     title: str | None
     description: str | None
     mimeType: str | None
@@ -52,7 +52,7 @@ class ResourceManager:
         # core.unsubscribe_resource()(self.get) # TODO: Implement
 
     def __call__(
-        self, uri: str, **kwargs: Unpack[ResourceOptions]
+        self, uri: str, **kwargs: Unpack[ResourceDefinition]
     ) -> Callable[[AnyFunction], Resource | ResourceTemplate]:
         """
         Decorator to add a resource to the MCP resource manager.
@@ -69,7 +69,7 @@ class ResourceManager:
         """
         return TEMPLATE_PARAM_REGEX.sub("|", uri)
 
-    def add(self, func: AnyFunction, uri: str, **kwargs: Unpack[ResourceOptions]) -> Resource | ResourceTemplate:
+    def add(self, func: AnyFunction, uri: str, **kwargs: Unpack[ResourceDefinition]) -> Resource | ResourceTemplate:
         """
         Add a resource or resource template to the MCP resource manager.
         """
