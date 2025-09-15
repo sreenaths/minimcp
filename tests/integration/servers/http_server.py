@@ -18,6 +18,7 @@ SERVER_PORT = int(os.environ.get("TEST_SERVER_PORT", "30789"))
 
 HEALTH_PATH = "/health"
 HTTP_MCP_PATH = "/http-mcp"
+STREAMABLE_HTTP_MCP_PATH = "/streamable-http-mcp"
 
 
 # Add the current directory to Python path to import math_mcp
@@ -52,6 +53,12 @@ async def health_check():
 async def handle_http_mcp_request(request: Request):
     """Handle MCP requests via HTTP transport."""
     return await starlette.http_transport(math_mcp.handle, request)
+
+
+@app.post(STREAMABLE_HTTP_MCP_PATH)
+async def handle_streamable_http_mcp_request(request: Request):
+    """Handle MCP requests via Streamable HTTP transport."""
+    return await starlette.streamable_http_transport(math_mcp.handle, request)
 
 
 def main():
