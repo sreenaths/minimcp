@@ -2,6 +2,7 @@
 MiniMCP math server for integration tests.
 """
 
+import anyio
 from pydantic import Field
 
 from minimcp import MiniMCP
@@ -45,6 +46,20 @@ def divide(
     if b == 0:
         raise ValueError("Cannot divide by zero")
     return a / b
+
+
+@math_mcp.tool(description="Add two numbers")
+async def add_with_progress(
+    a: float = Field(description="The first float number"), b: float = Field(description="The second float number")
+) -> float:
+    responder = math_mcp.context.get_responder()
+    await responder.report_progress(0.1, message="Adding numbers")
+    await anyio.sleep(0.1)
+    await responder.report_progress(0.4, message="Adding numbers")
+    await anyio.sleep(0.1)
+    await responder.report_progress(0.7, message="Adding numbers")
+    await anyio.sleep(0.1)
+    return a + b
 
 
 # -- Prompts --
