@@ -1,5 +1,5 @@
 """
-Integration tests for MCP server using fastmcp stdio client.
+Integration tests for MCP server using FastMCP stdio client.
 """
 
 import os
@@ -10,6 +10,8 @@ import pytest
 import pytest_asyncio
 from fastmcp.client import Client, PythonStdioTransport
 from mcp.types import TextContent, TextResourceContents
+
+# TODO: Investigate if we can use the same server process for all tests
 
 
 @pytest_asyncio.fixture
