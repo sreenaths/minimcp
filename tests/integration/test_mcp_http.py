@@ -13,14 +13,15 @@ from pathlib import Path
 import pytest
 import pytest_asyncio
 from fastmcp.client import Client, StreamableHttpTransport
+from httpx import AsyncClient, Limits, NetworkError, Timeout, TimeoutException
 from mcp.types import TextContent, TextResourceContents
 
 current_dir = Path(__file__).parent
 sys.path.insert(0, str(current_dir))
 
-from servers.http_server import HEALTH_PATH, MCP_PATH, SERVER_HOST, SERVER_PORT  # noqa: E402
+from servers.http_server import HEALTH_PATH, HTTP_MCP_PATH, SERVER_HOST, SERVER_PORT  # noqa: E402
 
-SERVER_URL = f"http://{SERVER_HOST}:{SERVER_PORT}{MCP_PATH}"
+SERVER_URL = f"http://{SERVER_HOST}:{SERVER_PORT}{HTTP_MCP_PATH}"
 
 
 @pytest_asyncio.fixture(scope="session")
@@ -106,25 +107,23 @@ async def _cleanup_process(proc: subprocess.Popen) -> None:
 
 async def _is_server_running() -> bool:
     """Check if a server is already running on the configured port."""
-    import httpx
 
     try:
         # Use shorter timeout for faster detection
-        async with httpx.AsyncClient(timeout=1.0) as client:
+        async with AsyncClient(timeout=1.0) as client:
             # Just check health endpoint - simpler and faster
             resp = await client.get(f"http://{SERVER_HOST}:{SERVER_PORT}{HEALTH_PATH}")
             return resp.status_code == 200
-    except (httpx.NetworkError, httpx.TimeoutException, OSError):
+    except (NetworkError, TimeoutException, OSError):
         return False
 
 
 async def _wait_until_ready(timeout: float = 10.0) -> None:
     """Wait for the server to be ready by checking the health endpoint."""
-    import httpx
 
     # Use connection pooling and longer timeouts for efficiency
-    limits = httpx.Limits(max_keepalive_connections=5, max_connections=10)
-    async with httpx.AsyncClient(limits=limits, timeout=5.0) as client:
+    limits = Limits(max_keepalive_connections=5, max_connections=10)
+    async with AsyncClient(limits=limits, timeout=5.0) as client:
         # Check less frequently but with exponential backoff
         delay = 0.1
         max_delay = 1.0
@@ -135,7 +134,7 @@ async def _wait_until_ready(timeout: float = 10.0) -> None:
                 resp = await client.get(f"http://{SERVER_HOST}:{SERVER_PORT}{HEALTH_PATH}")
                 if resp.status_code == 200:
                     return
-            except (httpx.NetworkError, OSError):
+            except (NetworkError, OSError):
                 pass
 
             await asyncio.sleep(delay)
@@ -167,14 +166,13 @@ async def mcp_client(start_mcp_http_server) -> AsyncGenerator[Client[StreamableH
 
 
 @pytest_asyncio.fixture
-async def shared_http_client() -> AsyncGenerator:
-    """Shared HTTP client for raw HTTP tests to reduce connection overhead."""
-    import httpx
+async def http_client(start_mcp_http_server) -> AsyncGenerator[AsyncClient, None]:
+    """HTTP client for raw HTTP tests - Needed for transport level error cases"""
 
-    limits = httpx.Limits(max_keepalive_connections=5, max_connections=10)
-    timeout = httpx.Timeout(5.0, connect=2.0)
+    limits = Limits(max_keepalive_connections=5, max_connections=10)
+    timeout = Timeout(5.0, connect=2.0)
 
-    async with httpx.AsyncClient(limits=limits, timeout=timeout) as client:
+    async with AsyncClient(limits=limits, timeout=timeout) as client:
         yield client
 
 
@@ -395,13 +393,11 @@ async def test_concurrent_requests(mcp_client: Client[StreamableHttpTransport]):
 
 
 @pytest.mark.asyncio
-async def test_invalid_json_request_body(start_mcp_http_server, shared_http_client):
+async def test_invalid_json_request_body(http_client):
     """Test server response to invalid JSON in request body."""
 
-    client = shared_http_client
-
     # Send invalid JSON
-    response = await client.post(
+    response = await http_client.post(
         SERVER_URL, content="not valid json", headers={"Content-Type": "application/json", "Accept": "application/json"}
     )
 
@@ -413,172 +409,155 @@ async def test_invalid_json_request_body(start_mcp_http_server, shared_http_clie
 
 
 @pytest.mark.asyncio
-async def test_empty_json_request_body(start_mcp_http_server):
+async def test_empty_json_request_body(http_client):
     """Test server response to empty request body."""
-    import httpx
 
-    async with httpx.AsyncClient() as client:
-        # Send empty body
-        response = await client.post(
-            SERVER_URL, content="", headers={"Content-Type": "application/json", "Accept": "application/json"}
-        )
+    # Send empty body
+    response = await http_client.post(
+        SERVER_URL, content="", headers={"Content-Type": "application/json", "Accept": "application/json"}
+    )
 
-        assert response.status_code == 400
-        error_data = response.json()
-        assert "error" in error_data
-        assert error_data["error"]["code"] == -32700  # PARSE_ERROR
-        assert "Invalid JSON" in error_data["error"]["message"]
+    assert response.status_code == 400
+    error_data = response.json()
+    assert "error" in error_data
+    assert error_data["error"]["code"] == -32700  # PARSE_ERROR
+    assert "Invalid JSON" in error_data["error"]["message"]
 
 
 @pytest.mark.asyncio
-async def test_json_array_request_body(start_mcp_http_server):
+async def test_json_array_request_body(http_client):
     """Test server response to JSON array instead of object."""
-    import httpx
 
-    async with httpx.AsyncClient() as client:
-        # Send JSON array instead of object
-        response = await client.post(
-            SERVER_URL,
-            json=[{"jsonrpc": "2.0", "method": "test", "id": 1}],
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+    # Send JSON array instead of object
+    response = await http_client.post(
+        SERVER_URL,
+        json=[{"jsonrpc": "2.0", "method": "test", "id": 1}],
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+    )
 
-        assert response.status_code == 400
-        error_data = response.json()
-        assert "error" in error_data
-        assert error_data["error"]["code"] == -32700  # PARSE_ERROR
-        assert "not a dictionary" in error_data["error"]["message"]
+    assert response.status_code == 400
+    error_data = response.json()
+    assert "error" in error_data
+    assert error_data["error"]["code"] == -32700  # PARSE_ERROR
+    assert "not a dictionary" in error_data["error"]["message"]
 
 
 @pytest.mark.asyncio
-async def test_json_string_request_body(start_mcp_http_server):
+async def test_json_string_request_body(http_client):
     """Test server response to JSON string instead of object."""
-    import httpx
 
-    async with httpx.AsyncClient() as client:
-        # Send JSON string instead of object
-        response = await client.post(
-            SERVER_URL, json="just a string", headers={"Content-Type": "application/json", "Accept": "application/json"}
-        )
+    # Send JSON string instead of object
+    response = await http_client.post(
+        SERVER_URL, json="just a string", headers={"Content-Type": "application/json", "Accept": "application/json"}
+    )
 
-        assert response.status_code == 400
-        error_data = response.json()
-        assert "error" in error_data
-        assert error_data["error"]["code"] == -32700  # PARSE_ERROR
-        assert "not a dictionary" in error_data["error"]["message"]
+    assert response.status_code == 400
+    error_data = response.json()
+    assert "error" in error_data
+    assert error_data["error"]["code"] == -32700  # PARSE_ERROR
+    assert "not a dictionary" in error_data["error"]["message"]
 
 
 @pytest.mark.asyncio
-async def test_missing_jsonrpc_field(start_mcp_http_server):
+async def test_missing_jsonrpc_field(http_client):
     """Test server response to request missing jsonrpc field."""
-    import httpx
 
-    async with httpx.AsyncClient() as client:
-        # Send request without jsonrpc field
-        response = await client.post(
-            SERVER_URL,
-            json={"method": "test", "id": 1},
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+    # Send request without jsonrpc field
+    response = await http_client.post(
+        SERVER_URL,
+        json={"method": "test", "id": 1},
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+    )
 
-        assert response.status_code == 400
-        error_data = response.json()
-        assert "error" in error_data
-        assert error_data["error"]["code"] == -32602  # INVALID_PARAMS
-        assert "Not a JSON-RPC message" in error_data["error"]["message"]
+    assert response.status_code == 400
+    error_data = response.json()
+    assert "error" in error_data
+    assert error_data["error"]["code"] == -32602  # INVALID_PARAMS
+    assert "Not a JSON-RPC message" in error_data["error"]["message"]
 
 
 @pytest.mark.asyncio
-async def test_wrong_jsonrpc_version(start_mcp_http_server):
+async def test_wrong_jsonrpc_version(http_client):
     """Test server response to wrong JSON-RPC version."""
-    import httpx
 
-    async with httpx.AsyncClient() as client:
-        # Send request with wrong JSON-RPC version
-        response = await client.post(
-            SERVER_URL,
-            json={"jsonrpc": "1.0", "method": "test", "id": 1},
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+    # Send request with wrong JSON-RPC version
+    response = await http_client.post(
+        SERVER_URL,
+        json={"jsonrpc": "1.0", "method": "test", "id": 1},
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+    )
 
-        assert response.status_code == 400
-        error_data = response.json()
-        assert "error" in error_data
-        assert error_data["error"]["code"] == -32602  # INVALID_PARAMS
-        assert "Not a JSON-RPC 2.0 message" in error_data["error"]["message"]
+    assert response.status_code == 400
+    error_data = response.json()
+    assert "error" in error_data
+    assert error_data["error"]["code"] == -32602  # INVALID_PARAMS
+    assert "Not a JSON-RPC 2.0 message" in error_data["error"]["message"]
 
 
 @pytest.mark.asyncio
-async def test_null_jsonrpc_field(start_mcp_http_server):
+async def test_null_jsonrpc_field(http_client):
     """Test server response to null jsonrpc field."""
-    import httpx
 
-    async with httpx.AsyncClient() as client:
-        # Send request with null jsonrpc field
-        response = await client.post(
-            SERVER_URL,
-            json={"jsonrpc": None, "method": "test", "id": 1},
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+    # Send request with null jsonrpc field
+    response = await http_client.post(
+        SERVER_URL,
+        json={"jsonrpc": None, "method": "test", "id": 1},
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+    )
 
-        assert response.status_code == 400
-        error_data = response.json()
-        assert "error" in error_data
-        assert error_data["error"]["code"] == -32602  # INVALID_PARAMS
-        assert "Not a JSON-RPC 2.0 message" in error_data["error"]["message"]
+    assert response.status_code == 400
+    error_data = response.json()
+    assert "error" in error_data
+    assert error_data["error"]["code"] == -32602  # INVALID_PARAMS
+    assert "Not a JSON-RPC 2.0 message" in error_data["error"]["message"]
 
 
 @pytest.mark.asyncio
-async def test_empty_json_object(start_mcp_http_server):
+async def test_empty_json_object(http_client):
     """Test server response to empty JSON object."""
-    import httpx
 
-    async with httpx.AsyncClient() as client:
-        # Send empty JSON object
-        response = await client.post(
-            SERVER_URL, json={}, headers={"Content-Type": "application/json", "Accept": "application/json"}
-        )
+    # Send empty JSON object
+    response = await http_client.post(
+        SERVER_URL, json={}, headers={"Content-Type": "application/json", "Accept": "application/json"}
+    )
 
-        assert response.status_code == 400
-        error_data = response.json()
-        assert "error" in error_data
-        assert error_data["error"]["code"] == -32602  # INVALID_PARAMS
-        assert "Not a JSON-RPC message" in error_data["error"]["message"]
+    assert response.status_code == 400
+    error_data = response.json()
+    assert "error" in error_data
+    assert error_data["error"]["code"] == -32602  # INVALID_PARAMS
+    assert "Not a JSON-RPC message" in error_data["error"]["message"]
 
 
 @pytest.mark.asyncio
-async def test_valid_jsonrpc_with_extra_fields(start_mcp_http_server):
+async def test_valid_jsonrpc_with_extra_fields(http_client):
     """Test that valid JSON-RPC with extra fields is accepted."""
-    import httpx
 
-    async with httpx.AsyncClient() as client:
-        # Send valid JSON-RPC request with extra fields
-        response = await client.post(
-            SERVER_URL,
-            json={
-                "jsonrpc": "2.0",
-                "method": "initialize",
-                "params": {
-                    "protocolVersion": "2025-06-18",
-                    "capabilities": {},
-                    "clientInfo": {"name": "test-client", "version": "1.0.0"},
-                },
-                "id": 1,
-                "extra": "field",  # Extra field should be allowed
+    # Send valid JSON-RPC request with extra fields
+    response = await http_client.post(
+        SERVER_URL,
+        json={
+            "jsonrpc": "2.0",
+            "method": "initialize",
+            "params": {
+                "protocolVersion": "2025-06-18",
+                "capabilities": {},
+                "clientInfo": {"name": "test-client", "version": "1.0.0"},
             },
-            headers={"Content-Type": "application/json", "Accept": "application/json"},
-        )
+            "id": 1,
+            "extra": "field",  # Extra field should be allowed
+        },
+        headers={"Content-Type": "application/json", "Accept": "application/json"},
+    )
 
-        # Should not fail due to extra fields
-        assert response.status_code == 200
-        response_data = response.json()
-        assert "result" in response_data
+    # Should not fail due to extra fields
+    assert response.status_code == 200
+    response_data = response.json()
+    assert "result" in response_data
 
 
 @pytest.mark.asyncio
-async def test_malformed_json_cases(start_mcp_http_server):
+async def test_malformed_json_cases(http_client):
     """Test various malformed JSON cases."""
-    import httpx
 
     malformed_cases = [
         '{"jsonrpc": "2.0", "method": "test", "id": 1',  # Missing closing brace
@@ -587,16 +566,15 @@ async def test_malformed_json_cases(start_mcp_http_server):
         '{jsonrpc: "2.0", "method": "test", "id": 1}',  # Unquoted key
     ]
 
-    async with httpx.AsyncClient() as client:
-        for malformed_json in malformed_cases:
-            response = await client.post(
-                SERVER_URL,
-                content=malformed_json,
-                headers={"Content-Type": "application/json", "Accept": "application/json"},
-            )
+    for malformed_json in malformed_cases:
+        response = await http_client.post(
+            SERVER_URL,
+            content=malformed_json,
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+        )
 
-            assert response.status_code == 400
-            error_data = response.json()
-            assert "error" in error_data
-            assert error_data["error"]["code"] == -32700  # PARSE_ERROR
-            assert "Invalid JSON" in error_data["error"]["message"]
+        assert response.status_code == 400
+        error_data = response.json()
+        assert "error" in error_data
+        assert error_data["error"]["code"] == -32700  # PARSE_ERROR
+        assert "Invalid JSON" in error_data["error"]["message"]

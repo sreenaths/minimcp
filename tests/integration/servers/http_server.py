@@ -15,8 +15,10 @@ from minimcp import starlette
 
 SERVER_HOST = os.environ.get("TEST_SERVER_HOST", "127.0.0.1")
 SERVER_PORT = int(os.environ.get("TEST_SERVER_PORT", "30789"))
-MCP_PATH = "/mcp"
+
 HEALTH_PATH = "/health"
+HTTP_MCP_PATH = "/http-mcp"
+
 
 # Add the current directory to Python path to import math_mcp
 current_dir = Path(__file__).parent
@@ -40,16 +42,16 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 
-@app.post(MCP_PATH)
-async def handle_mcp_request(request: Request):
-    """Handle MCP requests via HTTP transport."""
-    return await starlette.http_transport(math_mcp.handle, request)
-
-
 @app.get(HEALTH_PATH)
 async def health_check():
     """Health check endpoint."""
     return {"status": "ok", "server": "TestMathServer"}
+
+
+@app.post(HTTP_MCP_PATH)
+async def handle_http_mcp_request(request: Request):
+    """Handle MCP requests via HTTP transport."""
+    return await starlette.http_transport(math_mcp.handle, request)
 
 
 def main():
