@@ -1,5 +1,6 @@
 import minimcp.server.transports.starlette as starlette
 from minimcp.server import MiniMCP
+from minimcp.server.exceptions import ContextError
 from minimcp.server.limiter import Limiter, TimeLimiter
 from minimcp.server.managers.context_manager import Context
 from minimcp.server.responder import Responder
@@ -15,6 +16,7 @@ __all__ = [
     "Message",
     "NoMessage",
     "Send",
+    "ContextError",
     # --------------------------------
     # Orchestration
     "Context",
