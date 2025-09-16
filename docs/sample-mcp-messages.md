@@ -10,15 +10,19 @@ uv run uvicorn examples.math_mcp_server.fastapi_http:app --reload
 
 ## Ping
 
+Request
+
 ```json
-// Request
 {
   "jsonrpc": "2.0",
   "id": "123",
   "method": "ping"
 }
+```
 
-// Response
+Response
+
+```json
 {
     "jsonrpc": "2.0",
     "id": "123",
@@ -28,8 +32,9 @@ uv run uvicorn examples.math_mcp_server.fastapi_http:app --reload
 
 ## Initialize
 
+Request
+
 ```json
-// Request
 {
     "jsonrpc": "2.0",
     "id": "init-1",
@@ -45,8 +50,11 @@ uv run uvicorn examples.math_mcp_server.fastapi_http:app --reload
         }
     }
 }
+```
 
-// Response
+Response
+
+```json
 {
     "jsonrpc": "2.0",
     "id": "init-1",
@@ -70,16 +78,20 @@ uv run uvicorn examples.math_mcp_server.fastapi_http:app --reload
 
 ### List Tools
 
+Request
+
 ```json
-// Request
 {
     "jsonrpc": "2.0",
     "id": "tools-1",
     "method": "tools/list",
     "params": {}
 }
+```
 
-// Response
+Response
+
+```json
 {
     "jsonrpc": "2.0",
     "id": "tools-1",
@@ -112,8 +124,9 @@ uv run uvicorn examples.math_mcp_server.fastapi_http:app --reload
 
 ### Tool Calling
 
+Request
+
 ```json
-// Request
 {
     "jsonrpc": "2.0",
     "id": "tool-call-1",
@@ -126,8 +139,11 @@ uv run uvicorn examples.math_mcp_server.fastapi_http:app --reload
         }
     }
 }
+```
 
-// Response
+Response
+
+```json
 {
     "jsonrpc": "2.0",
     "id": "tool-call-1",
@@ -151,8 +167,9 @@ MiniMCP server must be started with streamable HTTP transport.
 uv run uvicorn examples.math_mcp_server.fastapi_streamable_http:app --reload
 ```
 
+Request
+
 ```json
-// Request
 {
     "jsonrpc": "2.0",
     "id": "tool-call-2",
@@ -168,8 +185,11 @@ uv run uvicorn examples.math_mcp_server.fastapi_streamable_http:app --reload
         }
     }
 }
+```
 
-// Responses
+Responses
+
+```json
 {
     "method": "notifications/progress",
     "params": {
@@ -212,16 +232,20 @@ uv run uvicorn examples.math_mcp_server.fastapi_streamable_http:app --reload
 
 ### List Prompts
 
+Request
+
 ```json
-// Request
 {
     "jsonrpc": "2.0",
     "id": "prompt-1",
     "method": "prompts/list",
     "params": {}
 }
+```
 
-// Responses
+Response
+
+```json
 {
     "jsonrpc": "2.0",
     "id": "prompt-1",
@@ -245,8 +269,9 @@ uv run uvicorn examples.math_mcp_server.fastapi_streamable_http:app --reload
 
 ### Get Prompt
 
+Request
+
 ```json
-// Request
 {
     "jsonrpc": "2.0",
     "id": "prompt-3",
@@ -258,8 +283,11 @@ uv run uvicorn examples.math_mcp_server.fastapi_streamable_http:app --reload
         }
     }
 }
+```
 
-// Responses
+Response
+
+```json
 {
     "jsonrpc": "2.0",
     "id": "prompt-3",
@@ -282,16 +310,20 @@ uv run uvicorn examples.math_mcp_server.fastapi_streamable_http:app --reload
 
 ### List Resources
 
+Request
+
 ```json
-// Request
 {
     "jsonrpc": "2.0",
     "id": "resource-1",
     "method": "resources/list",
     "params": {}
 }
+```
 
-// Responses
+Response
+
+```json
 {
     "jsonrpc": "2.0",
     "id": "resource-1",
@@ -309,16 +341,20 @@ uv run uvicorn examples.math_mcp_server.fastapi_streamable_http:app --reload
 
 ### List Resource Templates
 
+Request
+
 ```json
-// Request
 {
     "jsonrpc": "2.0",
     "id": "resource-2",
     "method": "resources/templates/list",
     "params": {}
 }
+```
 
-// Responses
+Response
+
+```json
 {
     "jsonrpc": "2.0",
     "id": "resource-2",
@@ -336,8 +372,9 @@ uv run uvicorn examples.math_mcp_server.fastapi_streamable_http:app --reload
 
 ### Read Resource
 
+Request
+
 ```json
-// Request
 {
     "jsonrpc": "2.0",
     "id": "resource-3",
@@ -346,8 +383,11 @@ uv run uvicorn examples.math_mcp_server.fastapi_streamable_http:app --reload
         "uri": "math://formulas/geometry"
     }
 }
+```
 
-// Responses
+Response
+
+```json
 {
     "jsonrpc": "2.0",
     "id": "resource-3",
@@ -365,8 +405,9 @@ uv run uvicorn examples.math_mcp_server.fastapi_streamable_http:app --reload
 
 ### Read Resource Template
 
+Request
+
 ```json
-// Request
 {
     "jsonrpc": "2.0",
     "id": "resource-4",
@@ -375,8 +416,11 @@ uv run uvicorn examples.math_mcp_server.fastapi_streamable_http:app --reload
         "uri": "math://formulas/geometry/Volume"
     }
 }
+```
 
-// Responses
+Response
+
+```json
 {
     "jsonrpc": "2.0",
     "id": "resource-4",
