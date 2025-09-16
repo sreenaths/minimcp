@@ -22,16 +22,16 @@ MiniMCP rethinks the MCP server from the ground up, keeping the core functionali
 
 - **Stateless:** Scalability, simplicity, and reliability are crucial for remote MCP servers. MiniMCP is stateless at its core, making it robust, easy to scale, and straightforward to maintain.
 - **Bidirectional is optional:** Many use cases work perfectly with a simple request–response channel without needing bidirectional communication. MiniMCP was built with this in mind and provides a simple HTTP transport while adhering to the specification.
-- **Embeddable:** Already have an application built with FastAPI (or another framework)? You can embed a MiniMCP server under a single endpoint—or multiple servers under multiple endpoints—_Unlike mounting you can use your existing dependency injection system._
+- **Embeddable:** Already have an application built with FastAPI (or another framework)? You can embed a MiniMCP server under a single endpoint—or multiple servers under multiple endpoints—_Unlike with mounting, you can use your existing dependency injection system._
 - **Scope and Context:** MiniMCP provides a type-checked scope object that travels with each message. This allows you to pass extra details such as authentication, user info, session data, or database handles. Inside the handler, the scope is available in the context—_so you’re free to use your preferred session or user management mechanisms._
 - **Security:** MiniMCP encourages you to use your existing battle-tested security mechanism instead of enforcing one - _A MiniMCP server built with FastAPI can be as secure as any FastAPI application!_
 - **Stream on Demand:** MiniMCP comes with a smart Streamable HTTP implementation. If the handler just returns a response, the server replies with a normal JSON HTTP response. An event stream is only opened when the server actually needs to push notifications to the client.
 - **Separation of Concerns:** The transport layer is fully decoupled from message handling. This makes it easy to adapt MiniMCP to different environments and protocols without rewriting your core business logic.
 - **Minimal Dependencies:** MiniMCP keeps its footprint small, depending only on the official MCP SDK. This makes it lightweight, easy to maintain, and less prone to dependency conflicts.
 
-### Supported Features
+### Currently Supported Features
 
-The following are currently supported by MiniMCP.
+The following features are already available in MiniMCP.
 
 - 🧩 Server primitives - Tools, Prompts and Resources
 - 🔗 Transports - stdio, HTTP, Streamable HTTP
@@ -42,9 +42,9 @@ The following are currently supported by MiniMCP.
 - ⏱️ Enforces idle time and concurrency limits
 - 📦 Web frameworks - In-built support for Starlette/FastAPI
 
-### Future Support
+### Planned (if needed)
 
-If need arises following features will be supported in the future.
+These features may be added in the future if the need arises.
 
 - ⚠️ Server-initiated messaging
 - ⚠️ Client primitives - Sampling, Elicitation, Logging
@@ -52,9 +52,9 @@ If need arises following features will be supported in the future.
 - ⚠️ Resumable Streamable HTTP with GET method support
 - ⚠️ MCP Client (_As shown in the [integration tests](https://github.com/sreenaths/minimcp/tree/main/tests/integration), MiniMCP works seamlessly with existing MCP clients, and there’s currently no need for a custom client_)
 
-### Non-Features
+### Unlikely
 
-The following features are very unlikely to be built into MiniMCP in the foreseeable future.
+These features are not expected to be built into MiniMCP in the foreseeable future.
 
 - 🚫 Session management
 - 🚫 Authentication
@@ -86,8 +86,8 @@ def add(a:int, b:int) -> int:
 @math_mcp.prompt()
 def problem_solving(problem_description: str) -> str:
     "Prompt to systematically solve math problems."
-    return f"""You are a math problem solver.
-......
+    return f"""You are a math problem solver. Solve the following problem step by step.
+Problem: {problem_description}
 """
 
 # Resource
@@ -135,6 +135,19 @@ HTTP is a subset of Streamable HTTP and doesn't support bidirectional communicat
 MiniMCP also provides a smart Streamable HTTP implementation. It adapts to usage patterns: if the handler simply returns a response, the server replies with a normal JSON HTTP response. An event stream is opened only when the server needs to push notifications to the client. To keep things simple and stateless, this is currently implemented using polling to keep the stream alive, with the option to support fully resumable Streamable HTTP in the future.
 
 For more details on supported transports, please check the [specification compliance](https://github.com/sreenaths/minimcp/blob/main/docs/transport-specification-compliance.md) document.
+
+You can use the transports as shown below, or wrap `math_mcp.handle` in a custom function to pass a scope or manage lifecycle:
+
+```python
+# Stdio
+anyio.run(stdio_transport, math_mcp.handle)
+
+# HTTP
+await starlette.http_transport(math_mcp.handle, request)
+
+# Streamable HTTP
+await starlette.streamable_http_transport(math_mcp.handle, request)
+```
 
 ## API Reference
 
