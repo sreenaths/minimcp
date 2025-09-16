@@ -84,7 +84,7 @@ These features are not expected to be built into MiniMCP in the foreseeable futu
 
 ## Using MiniMCP
 
-The snippets below provide a quick overview of how to use MiniMCP. Checkout the [examples](https://github.com/sreenaths/minimcp/tree/main/examples) for more.
+The snippets below provide a quick overview of how to use MiniMCP. Check out the [examples](https://github.com/sreenaths/minimcp/tree/main/examples) for more.
 
 ### Installation
 
@@ -120,8 +120,8 @@ def pi_value() -> float:
     return 3.14
 
 request_msg = '{"jsonrpc": "2.0", "id": "1", "method": "ping"}'
-response_msp = await mcp.handle(request_msg, scope={...})
-# response_msp = '{"jsonrpc": "2.0", "id": "1", "result": {}}'
+response_msg = await mcp.handle(request_msg, scope={...})
+# response_msg = '{"jsonrpc": "2.0", "id": "1", "result": {}}'
 ```
 
 ### FastAPI Integration
