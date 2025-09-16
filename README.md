@@ -23,7 +23,6 @@ _MiniMCP is designed with simplicity in mind. It provides a single asynchronous 
   - [Installation](https://github.com/sreenaths/minimcp?tab=readme-ov-file#installation)
   - [Basic Setup](https://github.com/sreenaths/minimcp?tab=readme-ov-file#basic-setup)
   - [FastAPI Integration](https://github.com/sreenaths/minimcp?tab=readme-ov-file#fastapi-integration)
-- [Transports](https://github.com/sreenaths/minimcp?tab=readme-ov-file#transports)
 - [API Reference](https://github.com/sreenaths/minimcp?tab=readme-ov-file#api-reference)
   - [MiniMCP](https://github.com/sreenaths/minimcp?tab=readme-ov-file#minimcp)
   - [Primitive Managers/Decorators](https://github.com/sreenaths/minimcp?tab=readme-ov-file#primitive-managersdecorators)
@@ -31,6 +30,7 @@ _MiniMCP is designed with simplicity in mind. It provides a single asynchronous 
     - [Prompt Manager](https://github.com/sreenaths/minimcp?tab=readme-ov-file#prompt-manager)
     - [Resource Manager](https://github.com/sreenaths/minimcp?tab=readme-ov-file#resource-manager)
   - [Context Manager](https://github.com/sreenaths/minimcp?tab=readme-ov-file#context-manager)
+- [Transports](https://github.com/sreenaths/minimcp?tab=readme-ov-file#transports)
 - [Examples](https://github.com/sreenaths/minimcp?tab=readme-ov-file#examples)
 - [License](https://github.com/sreenaths/minimcp?tab=readme-ov-file#license)
 
@@ -148,29 +148,6 @@ async def handle_mcp_request(request: Request):
     return await starlette.http_transport(math_mcp.handle, request)
 ```
 
-## Transports
-
-The official MCP specification currently defines two standard transport mechanisms: [stdio](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#stdio) and [Streamable HTTP](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#streamable-http). It also provides flexibility in implementations and also permits custom transports. MiniMCP uses this flexibility to introduce a third option: [HTTP transport](https://github.com/sreenaths/minimcp/blob/main/docs/transport-specification-compliance.md#2-http-transport).
-
-HTTP is a subset of Streamable HTTP and doesn't support bidirectional communication. However, as shown in the integration example, it can be added as a RESTful API endpoint in any Python application to host remote MCP servers. Importantly, it remains compatible with Streamable HTTP MCP clients.
-
-MiniMCP also provides a smart Streamable HTTP implementation. It adapts to usage patterns: if the handler simply returns a response, the server replies with a normal JSON HTTP response. An event stream is opened only when the server needs to push notifications to the client. To keep things simple and stateless, this is currently implemented using polling to keep the stream alive, with the option to support fully resumable Streamable HTTP in the future.
-
-You can use the transports as shown below, or wrap `math_mcp.handle` in a custom function to pass a scope or manage lifecycle:
-
-```python
-# Stdio
-anyio.run(stdio_transport, math_mcp.handle)
-
-# HTTP
-await starlette.http_transport(math_mcp.handle, request)
-
-# Streamable HTTP
-await starlette.streamable_http_transport(math_mcp.handle, request)
-```
-
-For more details on supported transports, please check the [specification compliance](https://github.com/sreenaths/minimcp/blob/main/docs/transport-specification-compliance.md) document.
-
 ## API Reference
 
 This section provides an overview of the key classes, their functions, and the arguments they accept.
@@ -273,6 +250,29 @@ mcp.context.get() -> Context[ScopeT]
 mcp.context.get_scope() -> ScopeT
 mcp.context.get_responder() -> Responder
 ```
+
+## Transports
+
+The official MCP specification currently defines two standard transport mechanisms: [stdio](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#stdio) and [Streamable HTTP](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#streamable-http). It also provides flexibility in implementations and also permits custom transports. MiniMCP uses this flexibility to introduce a third option: [HTTP transport](https://github.com/sreenaths/minimcp/blob/main/docs/transport-specification-compliance.md#2-http-transport).
+
+HTTP is a subset of Streamable HTTP and doesn't support bidirectional communication. However, as shown in the integration example, it can be added as a RESTful API endpoint in any Python application to host remote MCP servers. Importantly, it remains compatible with Streamable HTTP MCP clients.
+
+MiniMCP also provides a smart Streamable HTTP implementation. It adapts to usage patterns: if the handler simply returns a response, the server replies with a normal JSON HTTP response. An event stream is opened only when the server needs to push notifications to the client. To keep things simple and stateless, this is currently implemented using polling to keep the stream alive, with the option to support fully resumable Streamable HTTP in the future.
+
+You can use the transports as shown below, or wrap `math_mcp.handle` in a custom function to pass a scope or manage lifecycle:
+
+```python
+# Stdio
+anyio.run(stdio_transport, math_mcp.handle)
+
+# HTTP
+await starlette.http_transport(math_mcp.handle, request)
+
+# Streamable HTTP
+await starlette.streamable_http_transport(math_mcp.handle, request)
+```
+
+For more details on supported transports, please check the [specification compliance](https://github.com/sreenaths/minimcp/blob/main/docs/transport-specification-compliance.md) document.
 
 ## Examples
 
