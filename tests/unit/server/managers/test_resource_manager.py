@@ -102,7 +102,7 @@ class TestResourceManager:
             "data://json",
             title="JSON Data",
             description="Custom JSON data",
-            mimeType="application/json",
+            mime_type="application/json",
             annotations=custom_annotations,
             meta=custom_meta,
         )
@@ -318,7 +318,7 @@ class TestResourceManager:
             """A text resource."""
             return "Hello, World!"
 
-        resource_manager.add(text_resource, "file://hello.txt", mimeType="text/plain")
+        resource_manager.add(text_resource, "file://hello.txt", mime_type="text/plain")
 
         result = await resource_manager.read("file://hello.txt")
         result_list = list(result)
@@ -374,7 +374,7 @@ class TestResourceManager:
             """A binary resource."""
             return b"Binary content"
 
-        resource_manager.add(binary_resource, "file://binary.dat", mimeType="application/octet-stream")
+        resource_manager.add(binary_resource, "file://binary.dat", mime_type="application/octet-stream")
 
         result = await resource_manager.read("file://binary.dat")
         result_list = list(result)
@@ -391,7 +391,7 @@ class TestResourceManager:
             """A JSON resource."""
             return {"name": "Test Resource", "values": [1, 2, 3], "metadata": {"created": "2024-01-01"}}
 
-        resource_manager.add(json_resource, "data://json", mimeType="application/json")
+        resource_manager.add(json_resource, "data://json", mime_type="application/json")
 
         result = await resource_manager.read("data://json")
         result_list = list(result)
@@ -463,14 +463,14 @@ class TestResourceManager:
         options: ResourceDefinition = {
             "title": "Test Title",
             "description": "test_description",
-            "mimeType": "text/plain",
+            "mime_type": "text/plain",
             "annotations": types.Annotations(audience=["user"]),
             "meta": {"version": "1.0"},
         }
 
         assert options["title"] == "Test Title"
         assert options["description"] == "test_description"
-        assert options["mimeType"] == "text/plain"
+        assert options["mime_type"] == "text/plain"
         assert options["meta"] == {"version": "1.0"}
 
     def test_decorator_usage(self, resource_manager: ResourceManager):
@@ -577,7 +577,7 @@ class TestResourceManager:
 
         # Add resources
         config_added = resource_manager.add(
-            config_resource, "config://app.json", title="App Config", mimeType="application/json"
+            config_resource, "config://app.json", title="App Config", mime_type="application/json"
         )
         user_added = resource_manager.add(user_resource, "users/{user_id}")
 

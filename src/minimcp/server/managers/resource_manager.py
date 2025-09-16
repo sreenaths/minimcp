@@ -19,9 +19,10 @@ logger = logging.getLogger(__name__)
 
 
 class ResourceDefinition(TypedDict, total=False):
+    name: str | None
     title: str | None
     description: str | None
-    mimeType: str | None
+    mime_type: str | None
     annotations: Annotations | None
     meta: dict[str, Any] | None
 
@@ -103,7 +104,7 @@ class ResourceManager:
                 title=kwargs.get("title", None),
                 uriTemplate=uri,
                 description=kwargs.get("description", details.doc),
-                mimeType=kwargs.get("mimeType", None),
+                mimeType=kwargs.get("mime_type", None),
                 annotations=kwargs.get("annotations", None),
                 _meta=kwargs.get("meta", None),
             )
@@ -121,7 +122,7 @@ class ResourceManager:
                 title=kwargs.get("title", None),
                 uri=uri,  # type: ignore[arg-type]
                 description=kwargs.get("description", details.doc),
-                mimeType=kwargs.get("mimeType", None),
+                mimeType=kwargs.get("mime_type", None),
                 annotations=kwargs.get("annotations", None),
                 _meta=kwargs.get("meta", None),
             )
