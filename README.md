@@ -32,6 +32,7 @@ _MiniMCP is designed with simplicity at its core, it exposes a single asynchrono
   - [Context Manager](https://github.com/sreenaths/minimcp?tab=readme-ov-file#context-manager)
 - [Transports](https://github.com/sreenaths/minimcp?tab=readme-ov-file#transports)
 - [Examples](https://github.com/sreenaths/minimcp?tab=readme-ov-file#examples)
+  - [Claude Desktop](https://github.com/sreenaths/minimcp?tab=readme-ov-file#claude-desktop)
 - [License](https://github.com/sreenaths/minimcp?tab=readme-ov-file#license)
 
 ## What is MCP?
@@ -301,7 +302,7 @@ The table below lists the available examples along with the commands to run them
 
 The [Sample MCP Messages](https://github.com/sreenaths/minimcp/blob/main/docs/sample-mcp-messages.md) document provides example input messages along with their corresponding responses.
 
-### Claude desktop
+### Claude Desktop
 
 Claude desktop can be configured to run the stdio example as follows.
 
