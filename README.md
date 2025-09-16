@@ -12,6 +12,28 @@ A **minimal, stateless, and lightweight** framework for building remote MCP serv
 
 _MiniMCP is designed with simplicity in mind. It provides a single asynchronous function to handle MCP messages—just pass in the request message, and you’ll get the response back_ ⭐ _While MiniMCP supports bidirectional messaging, it’s not a mandatory requirement—So you can use plain HTTP for communication_ ⭐ _MiniMCP is primarily built for remote MCP servers but works just as well for local servers_ ⭐ _MiniMCP ships with built-in transport mechanisms (stdio, HTTP via Starlette, and Streamable HTTP via Starlette). These wrap your handler, but you’re free to use them directly or implement your own_ ⭐ _MiniMCP is built on the [official MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk), ensuring standardized context and resource sharing._
 
+## Table of Contents
+
+- [What is MCP?](https://github.com/sreenaths/minimcp?tab=readme-ov-file#what-is-mcp)
+- [Why MiniMCP?](https://github.com/sreenaths/minimcp?tab=readme-ov-file#why-minimcp)
+  - [Currently Supported Features](https://github.com/sreenaths/minimcp?tab=readme-ov-file#currently-supported-features)
+  - [Planned Features](https://github.com/sreenaths/minimcp?tab=readme-ov-file#planned-features-if-needed)
+  - [Unlikely Features](https://github.com/sreenaths/minimcp?tab=readme-ov-file#unlikely-features)
+- [Using MiniMCP](https://github.com/sreenaths/minimcp?tab=readme-ov-file#using-minimcp)
+  - [Installation](https://github.com/sreenaths/minimcp?tab=readme-ov-file#installation)
+  - [Basic Setup](https://github.com/sreenaths/minimcp?tab=readme-ov-file#basic-setup)
+  - [FastAPI Integration](https://github.com/sreenaths/minimcp?tab=readme-ov-file#fastapi-integration)
+- [Transports](https://github.com/sreenaths/minimcp?tab=readme-ov-file#transports)
+- [API Reference](https://github.com/sreenaths/minimcp?tab=readme-ov-file#api-reference)
+  - [MiniMCP](https://github.com/sreenaths/minimcp?tab=readme-ov-file#minimcp)
+  - [Primitive Managers/Decorators](https://github.com/sreenaths/minimcp?tab=readme-ov-file#primitive-managersdecorators)
+    - [Tool Manager](https://github.com/sreenaths/minimcp?tab=readme-ov-file#tool-manager)
+    - [Prompt Manager](https://github.com/sreenaths/minimcp?tab=readme-ov-file#prompt-manager)
+    - [Resource Manager](https://github.com/sreenaths/minimcp?tab=readme-ov-file#resource-manager)
+  - [Context Manager](https://github.com/sreenaths/minimcp?tab=readme-ov-file#context-manager)
+- [Examples](https://github.com/sreenaths/minimcp?tab=readme-ov-file#examples)
+- [License](https://github.com/sreenaths/minimcp?tab=readme-ov-file#license)
+
 ## What is MCP?
 
 The [Model Context Protocol (MCP)](https://modelcontextprotocol.io) is a powerful, standardized way for AI applications to connect with external data sources and tools. It follows a client–server architecture, where communication happens through well-defined MCP messages in the JSON-RPC 2.0 format. The key advantage of MCP is interoperability: once a server supports MCP, any MCP-compatible AI client can connect to it without custom integration code. The official MCP Python SDK provides a low-level implementation of the protocol, while [FastMCP](https://github.com/jlowin/fastmcp) offers a higher-level, Pythonic interface.
@@ -42,7 +64,7 @@ The following features are already available in MiniMCP.
 - ⏱️ Enforces idle time and concurrency limits
 - 📦 Web frameworks - In-built support for Starlette/FastAPI
 
-### Planned (if needed)
+### Planned Features (if needed)
 
 These features may be added in the future if the need arises.
 
@@ -52,7 +74,7 @@ These features may be added in the future if the need arises.
 - ⚠️ Resumable Streamable HTTP with GET method support
 - ⚠️ MCP Client (_As shown in the [integration tests](https://github.com/sreenaths/minimcp/tree/main/tests/integration), MiniMCP works seamlessly with existing MCP clients, and there’s currently no need for a custom client_)
 
-### Unlikely
+### Unlikely Features
 
 These features are not expected to be built into MiniMCP in the foreseeable future.
 
@@ -69,7 +91,7 @@ The snippets below provide a quick overview of how to use MiniMCP. Checkout the 
 pip install minimcp
 ```
 
-### Basic MiniMCP
+### Basic Setup
 
 The following example demonstrates simple registration and basic message processing using the handle function.
 
@@ -134,8 +156,6 @@ HTTP is a subset of Streamable HTTP and doesn't support bidirectional communicat
 
 MiniMCP also provides a smart Streamable HTTP implementation. It adapts to usage patterns: if the handler simply returns a response, the server replies with a normal JSON HTTP response. An event stream is opened only when the server needs to push notifications to the client. To keep things simple and stateless, this is currently implemented using polling to keep the stream alive, with the option to support fully resumable Streamable HTTP in the future.
 
-For more details on supported transports, please check the [specification compliance](https://github.com/sreenaths/minimcp/blob/main/docs/transport-specification-compliance.md) document.
-
 You can use the transports as shown below, or wrap `math_mcp.handle` in a custom function to pass a scope or manage lifecycle:
 
 ```python
@@ -148,6 +168,8 @@ await starlette.http_transport(math_mcp.handle, request)
 # Streamable HTTP
 await starlette.streamable_http_transport(math_mcp.handle, request)
 ```
+
+For more details on supported transports, please check the [specification compliance](https://github.com/sreenaths/minimcp/blob/main/docs/transport-specification-compliance.md) document.
 
 ## API Reference
 
@@ -193,13 +215,13 @@ In addition to decorator usage, all three primitive managers also expose methods
 ```python
 # A a decorator
 @mcp.tool([name, title, description, annotations, meta])
-def handler_fun(...):...
+def handler_func(...):...
 
 # Methods for programmatic access
-mcp.tool.add(func, [name, title, description, annotations, meta])
-mcp.tool.remove(name)
-mcp.tool.list()
-mcp.tool.call(name, args)
+mcp.tool.add(func, [name, title, description, annotations, meta])  # Register a tool
+mcp.tool.remove(name)                                              # Remove a tool by name
+mcp.tool.list()                                                    # List all registered tools
+mcp.tool.call(name, args)                                          # Invoke a tool by name
 ```
 
 #### Prompt Manager
@@ -207,7 +229,7 @@ mcp.tool.call(name, args)
 ```python
 # A a decorator
 @mcp.prompt([name, title, description, meta])
-def handler_fun(...):...
+def handler_func(...):...
 
 # Methods for programmatic access
 mcp.prompt.add(func, [name, title, description, meta])
@@ -221,7 +243,7 @@ mcp.prompt.get(name, args)
 ```python
 # A a decorator
 @mcp.resource(url, [name, title, description, mime_type, annotations, meta])
-def handler_fun(...):...
+def handler_func(...):...
 
 # Methods for programmatic access
 mcp.resource.add(func, url, [name, title, description, annotations, meta])
@@ -234,20 +256,20 @@ mcp.resource.read_by_name(name, args)
 
 ### Context Manager
 
-The context manager keeps track of the current handler context. From inside a handler, you can call `mcp_instance.context.get()` to access the associated context. If called outside of a handler, it will raise a NoContext error.
+The context manager tracks the currently active handler context. From within a handler, you can call mcp_instance.context.get() to access the associated context. If called outside of a handler, a NoContext error will be raised.
 
 ```python
 # Context structure
 Context(Generic[ScopeT]):
-    message: JSONRPCMessage      # Parsed request message
-    time_limiter: TimeLimiter    # To reset handler idle timeout
-    scope: ScopeT | None         # Scope object passed while calling handle()
-    responder: Responder | None  # To send notifications back to the client
+    message: JSONRPCMessage      # The parsed request message
+    time_limiter: TimeLimiter    # time_limiter.reset() resets the handler idle timeout
+    scope: ScopeT | None         # Scope object passed when calling handle()
+    responder: Responder | None  # Allows sending notifications back to the client
 
 # Accessing context
 mcp.context.get() -> Context[ScopeT]
 
-# Following syntactic sugar is also provided for use without null check
+# For common use cases, the following helpers are provided to avoid null checks
 mcp.context.get_scope() -> ScopeT
 mcp.context.get_responder() -> Responder
 ```
