@@ -10,7 +10,7 @@
 A **minimal, stateless, and lightweight** framework for building remote MCP servers.
 </div>
 
-_MiniMCP is designed with simplicity in mind. It provides a single asynchronous function to handle MCP messages—just pass in the request message, and you’ll get the response back_ ⭐ _While MiniMCP supports bidirectional messaging, it’s not a mandatory requirement—So you can use plain HTTP for communication_ ⭐ _MiniMCP is primarily built for remote MCP servers but works just as well for local servers_ ⭐ _MiniMCP ships with built-in transport mechanisms (stdio, HTTP via Starlette, and Streamable HTTP via Starlette). These wrap your handler, but you’re free to use them directly or implement your own_ ⭐ _MiniMCP is built on the [official MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk), ensuring standardized context and resource sharing._
+_MiniMCP is designed with simplicity at its core, it exposes a single asynchronous function to handle MCP messages—Pass in a request, and it returns the response_ ⭐ _While MiniMCP supports bidirectional messaging, it’s not a mandatory requirement—So you can use plain HTTP for communication_ ⭐ _MiniMCP is primarily built for remote MCP servers but works just as well for local servers_ ⭐ _MiniMCP ships with built-in transport mechanisms (stdio, HTTP via Starlette, and Streamable HTTP via Starlette)—You’re free to use them directly or implement your own_ ⭐ _MiniMCP is built on the [official MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk), ensuring standardized context and resource sharing._
 
 ## Table of Contents
 
@@ -69,6 +69,7 @@ The following features are already available in MiniMCP.
 These features may be added in the future if the need arises.
 
 - ⚠️ Server-initiated messaging
+- ⚠️ Built-in support for more frameworks—Flask, Django etc.
 - ⚠️ Client primitives - Sampling, Elicitation, Logging
 - ⚠️ Pagination
 - ⚠️ Resumable Streamable HTTP with GET method support
@@ -105,7 +106,7 @@ def add(a:int, b:int) -> int:
     return a + b
 
 # Prompt
-@math_mcp.prompt()
+@mcp.prompt()
 def problem_solving(problem_description: str) -> str:
     "Prompt to systematically solve math problems."
     return f"""You are a math problem solver. Solve the following problem step by step.
@@ -145,7 +146,7 @@ def add(a:int, b:int) -> int:
 # Define the MCP endpoint
 @app.post("/mcp")
 async def handle_mcp_request(request: Request):
-    return await starlette.http_transport(math_mcp.handle, request)
+    return await starlette.http_transport(mcp.handle, request)
 ```
 
 ## API Reference
@@ -190,7 +191,7 @@ In addition to decorator usage, all three primitive managers also expose methods
 #### Tool Manager
 
 ```python
-# A a decorator
+# As a decorator
 @mcp.tool([name, title, description, annotations, meta])
 def handler_func(...):...
 
@@ -204,7 +205,7 @@ mcp.tool.call(name, args)                                          # Invoke a to
 #### Prompt Manager
 
 ```python
-# A a decorator
+# As a decorator
 @mcp.prompt([name, title, description, meta])
 def handler_func(...):...
 
@@ -218,7 +219,7 @@ mcp.prompt.get(name, args)
 #### Resource Manager
 
 ```python
-# A a decorator
+# As a decorator
 @mcp.resource(url, [name, title, description, mime_type, annotations, meta])
 def handler_func(...):...
 
@@ -233,7 +234,7 @@ mcp.resource.read_by_name(name, args)
 
 ### Context Manager
 
-The context manager tracks the currently active handler context. From within a handler, you can call mcp_instance.context.get() to access the associated context. If called outside of a handler, a NoContext error will be raised.
+The Context Manager provides access to request metadata (such as the message, scope, responder, and timeout) directly inside handlers. It tracks the currently active handler context, which you can retrieve using `mcp_instance.context.get()`. If called outside of a handler, this method raises a `ContextError`.
 
 ```python
 # Context structure
@@ -255,21 +256,27 @@ mcp.context.get_responder() -> Responder
 
 The official MCP specification currently defines two standard transport mechanisms: [stdio](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#stdio) and [Streamable HTTP](https://modelcontextprotocol.io/specification/2025-06-18/basic/transports#streamable-http). It also provides flexibility in implementations and also permits custom transports. MiniMCP uses this flexibility to introduce a third option: [HTTP transport](https://github.com/sreenaths/minimcp/blob/main/docs/transport-specification-compliance.md#2-http-transport).
 
+| Transport       | Directionality   | Use Case                                                            |
+| --------------- | ---------------- | ------------------------------------------------------------------- |
+| stdio           | Bidirectional    | Local integration (e.g., Claude desktop)                            |
+| HTTP            | Request–response | Simple REST-like message handling                                   |
+| Streamable HTTP | Bidirectional    | Advanced message handling with notifications, progress updates etc. |
+
 HTTP is a subset of Streamable HTTP and doesn't support bidirectional communication. However, as shown in the integration example, it can be added as a RESTful API endpoint in any Python application to host remote MCP servers. Importantly, it remains compatible with Streamable HTTP MCP clients.
 
 MiniMCP also provides a smart Streamable HTTP implementation. It adapts to usage patterns: if the handler simply returns a response, the server replies with a normal JSON HTTP response. An event stream is opened only when the server needs to push notifications to the client. To keep things simple and stateless, this is currently implemented using polling to keep the stream alive, with the option to support fully resumable Streamable HTTP in the future.
 
-You can use the transports as shown below, or wrap `math_mcp.handle` in a custom function to pass a scope or manage lifecycle:
+You can use the transports as shown below, or wrap `mcp.handle` in a custom function to pass a scope or manage lifecycle:
 
 ```python
 # Stdio
-anyio.run(stdio_transport, math_mcp.handle)
+anyio.run(stdio_transport, mcp.handle)
 
 # HTTP
-await starlette.http_transport(math_mcp.handle, request)
+await starlette.http_transport(mcp.handle, request)
 
 # Streamable HTTP
-await starlette.streamable_http_transport(math_mcp.handle, request)
+await starlette.streamable_http_transport(mcp.handle, request)
 ```
 
 For more details on supported transports, please check the [specification compliance](https://github.com/sreenaths/minimcp/blob/main/docs/transport-specification-compliance.md) document.
@@ -286,11 +293,15 @@ uv sync --frozen --all-extras --dev
 
 The table below lists the available examples along with the commands to run them.
 
-| # | Transport | Command |
-|---|---|---|
-| 1 | Stdio | `uv run -m examples.math_mcp_server.stdio` |
-| 2 | HTTP with FastAPI | `uv run uvicorn examples.math_mcp_server.fastapi_http:app --reload` |
+| # | Transport                    | Command                                                                        |
+|---|------------------------------|--------------------------------------------------------------------------------|
+| 1 | Stdio                        | `uv run -m examples.math_mcp_server.stdio`                                     |
+| 2 | HTTP with FastAPI            | `uv run uvicorn examples.math_mcp_server.fastapi_http:app --reload`            |
 | 3 | Streamable HTTP with FastAPI | `uv run uvicorn examples.math_mcp_server.fastapi_streamable_http:app --reload` |
+
+The [Sample MCP Messages](https://github.com/sreenaths/minimcp/blob/main/docs/sample-mcp-messages.md) document provides example input messages along with their corresponding responses.
+
+### Claude desktop
 
 Claude desktop can be configured to run the stdio example as follows.
 
