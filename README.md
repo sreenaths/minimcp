@@ -1,7 +1,7 @@
 <div align="center">
 
 <!-- omit in toc -->
-# ✨ MiniMCP
+### ![✨ MiniMCP](https://raw.githubusercontent.com/sreenaths/minimcp/refs/heads/main/docs/images/minimcp-logo.svg)
 
 ![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.10%2B-blue)
