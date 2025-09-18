@@ -501,16 +501,14 @@ class TestResponder:
         assert responder._progress_token == "prompt-progress-token"
 
     @pytest.mark.asyncio
-    async def test_error_handling_in_get_progress_token(self, mock_send, mock_time_limiter, caplog):
+    async def test_error_handling_in_get_progress_token(self, mock_send, mock_time_limiter):
         """Test error handling in progress token extraction."""
         # Create a request that will cause an exception during token extraction
         malformed_request = '{"jsonrpc": "2.0", "id": 1, "method": "test"}'
 
-        with caplog.at_level("DEBUG"):
-            responder = Responder(malformed_request, mock_send, mock_time_limiter)
+        responder = Responder(malformed_request, mock_send, mock_time_limiter)
 
         assert responder._progress_token is None
-        assert "Failed to get progress token" in caplog.text
 
 
 class TestResponderIntegration:
