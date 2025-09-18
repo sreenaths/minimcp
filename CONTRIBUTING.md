@@ -81,6 +81,14 @@ uv run twine check dist/*
 uv run twine upload dist/*
 ```
 
+## Validate pyproject.toml
+
+To validate changes after editing pyproject.toml, run:
+
+```bash
+uvx --from 'validate-pyproject[all]' validate-pyproject pyproject.toml
+```
+
 ## License
 
 By contributing, you agree that your contributions will be licensed under [Apache License, Version 2.0](https://github.com/sreenaths/minimcp/blob/main/LICENSE)
