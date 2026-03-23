@@ -16,7 +16,9 @@ logger = logging.getLogger(__name__)
 ScopeT = TypeVar("ScopeT", bound=object)
 
 
-@dataclass(slots=True)  # Use NamedTuple once MCP drops support for Python 3.10
+# TODO: Replace @dataclass(slots=True) with NamedTuple once MCP SDK drops support for Python 3.10.
+#       Generic NamedTuple is supported only in Python 3.11+.
+@dataclass(slots=True)
 class Context(Generic[ScopeT]):
     """
     Context object holds request metadata available to message handlers.
