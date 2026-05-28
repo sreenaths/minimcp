@@ -38,3 +38,25 @@ pub type SendFn = Arc<dyn Fn(Message) -> Pin<Box<dyn Future<Output = ()> + Send>
 ///
 /// See <https://modelcontextprotocol.io/specification/2025-06-18/server/resources#error-handling>.
 pub const RESOURCE_NOT_FOUND: i32 = -32002;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn no_message_variant_equality() {
+        assert_eq!(NoMessage::Notification, NoMessage::Notification);
+    }
+
+    #[test]
+    fn outcome_message_holds_payload() {
+        let outcome = Outcome::Message("hello".to_string());
+        assert_eq!(outcome, Outcome::Message("hello".to_string()));
+        assert_ne!(outcome, Outcome::NoMessage(NoMessage::Notification));
+    }
+
+    #[test]
+    fn resource_not_found_code() {
+        assert_eq!(RESOURCE_NOT_FOUND, -32002);
+    }
+}

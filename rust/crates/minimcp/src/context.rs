@@ -92,3 +92,89 @@ impl<S: Any + Send + Sync + 'static> ContextManager<S> {
             .map_err(|_| ContextError("Scope type mismatch in current context".to_string()))
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn ctx_with_scope(scope: Option<Arc<dyn Any + Send + Sync>>) -> Context {
+        Context {
+            message: r#"{"jsonrpc":"2.0","id":1,"method":"t"}"#.to_string(),
+            scope,
+            responder: None,
+        }
+    }
+
+    #[test]
+    fn get_outside_active_context_errors() {
+        let manager = ContextManager::<()>::new();
+        assert!(manager.get().is_err());
+    }
+
+    #[test]
+    fn get_scope_outside_active_context_errors() {
+        let manager = ContextManager::<String>::new();
+        assert!(manager.get_scope().is_err());
+    }
+
+    #[test]
+    fn get_responder_outside_active_context_errors() {
+        let manager = ContextManager::<()>::new();
+        assert!(manager.get_responder().is_err());
+    }
+
+    #[tokio::test]
+    async fn get_within_active_context_returns_message() {
+        let manager = ContextManager::<()>::new();
+        let ctx = ctx_with_scope(None);
+        CURRENT_CONTEXT
+            .scope(ctx, async {
+                let active = manager.get().unwrap();
+                assert!(active.message.contains("\"method\":\"t\""));
+            })
+            .await;
+    }
+
+    #[tokio::test]
+    async fn get_scope_downcasts_to_concrete_type() {
+        let manager = ContextManager::<String>::new();
+        let scope: Arc<dyn Any + Send + Sync> = Arc::new("hello".to_string());
+        CURRENT_CONTEXT
+            .scope(ctx_with_scope(Some(scope)), async {
+                let scope = manager.get_scope().unwrap();
+                assert_eq!(*scope, "hello".to_string());
+            })
+            .await;
+    }
+
+    #[tokio::test]
+    async fn get_scope_type_mismatch_errors() {
+        let manager = ContextManager::<u32>::new();
+        let scope: Arc<dyn Any + Send + Sync> = Arc::new("not a u32".to_string());
+        CURRENT_CONTEXT
+            .scope(ctx_with_scope(Some(scope)), async {
+                assert!(manager.get_scope().is_err());
+            })
+            .await;
+    }
+
+    #[tokio::test]
+    async fn get_scope_none_errors() {
+        let manager = ContextManager::<String>::new();
+        CURRENT_CONTEXT
+            .scope(ctx_with_scope(None), async {
+                assert!(manager.get_scope().is_err());
+            })
+            .await;
+    }
+
+    #[tokio::test]
+    async fn get_responder_none_errors() {
+        let manager = ContextManager::<()>::new();
+        CURRENT_CONTEXT
+            .scope(ctx_with_scope(None), async {
+                assert!(manager.get_responder().is_err());
+            })
+            .await;
+    }
+}

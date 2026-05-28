@@ -103,3 +103,60 @@ pub struct InvalidMessageError {
     /// The JSON-RPC error message to send back to the client.
     pub response: Message,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn error_codes_map_to_json_rpc() {
+        assert_eq!(Error::InvalidJson("x".into()).code(), codes::PARSE_ERROR);
+        assert_eq!(
+            Error::InvalidJsonRpc("x".into()).code(),
+            codes::INVALID_REQUEST
+        );
+        assert_eq!(
+            Error::UnsupportedMessageType("x".into()).code(),
+            codes::INVALID_REQUEST
+        );
+        assert_eq!(
+            Error::InvalidMcpMessage("x".into()).code(),
+            codes::INVALID_PARAMS
+        );
+        assert_eq!(
+            Error::InvalidArguments("x".into()).code(),
+            codes::INVALID_PARAMS
+        );
+        assert_eq!(Error::Primitive("x".into()).code(), codes::INVALID_PARAMS);
+        assert_eq!(
+            Error::RequestHandlerNotFound("x".into()).code(),
+            codes::METHOD_NOT_FOUND
+        );
+        assert_eq!(
+            Error::ResourceNotFound("x".into()).code(),
+            RESOURCE_NOT_FOUND
+        );
+        assert_eq!(Error::Runtime("x".into()).code(), codes::INTERNAL_ERROR);
+    }
+
+    #[test]
+    fn context_error_maps_to_internal_error() {
+        let err = Error::Context(ContextError("boom".into()));
+        assert_eq!(err.code(), codes::INTERNAL_ERROR);
+    }
+
+    #[test]
+    fn context_error_display() {
+        assert_eq!(ContextError("no context".into()).to_string(), "no context");
+    }
+
+    #[test]
+    fn invalid_message_error_carries_response() {
+        let err = InvalidMessageError {
+            message: "bad".into(),
+            response: "{\"error\":1}".into(),
+        };
+        assert_eq!(err.to_string(), "bad");
+        assert_eq!(err.response, "{\"error\":1}");
+    }
+}

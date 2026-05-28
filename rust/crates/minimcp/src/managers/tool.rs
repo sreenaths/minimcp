@@ -143,3 +143,97 @@ impl ToolManager {
         })
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn obj_schema() -> Value {
+        json!({"type": "object", "properties": {"x": {"type": "integer"}}})
+    }
+
+    fn manager_with_double() -> ToolManager {
+        let manager = ToolManager::new();
+        manager
+            .add(
+                "double",
+                Some("doubles x"),
+                obj_schema(),
+                None,
+                |args| async move {
+                    let x = args["x"].as_i64().ok_or_else(|| "missing x".to_string())?;
+                    Ok(json!({"result": x * 2}))
+                },
+            )
+            .unwrap();
+        manager
+    }
+
+    #[test]
+    fn add_returns_tool_metadata() {
+        let manager = ToolManager::new();
+        let tool = manager
+            .add("greet", Some("greets"), obj_schema(), None, |_| async {
+                Ok(json!({}))
+            })
+            .unwrap();
+        assert_eq!(tool.name, "greet");
+        assert_eq!(tool.description.as_deref(), Some("greets"));
+    }
+
+    #[test]
+    fn add_duplicate_errors() {
+        let manager = manager_with_double();
+        let err = manager
+            .add("double", None, obj_schema(), None, |_| async {
+                Ok(json!({}))
+            })
+            .unwrap_err();
+        assert!(matches!(err, Error::Primitive(_)));
+    }
+
+    #[test]
+    fn remove_existing_and_missing() {
+        let manager = manager_with_double();
+        assert_eq!(manager.remove("double").unwrap().name, "double");
+        assert!(matches!(manager.remove("double"), Err(Error::Primitive(_))));
+    }
+
+    #[test]
+    fn list_empty_and_populated() {
+        let manager = ToolManager::new();
+        assert!(manager.list().is_empty());
+        manager
+            .add("a", None, obj_schema(), None, |_| async { Ok(json!({})) })
+            .unwrap();
+        manager
+            .add("b", None, obj_schema(), None, |_| async { Ok(json!({})) })
+            .unwrap();
+        assert_eq!(manager.list().len(), 2);
+    }
+
+    #[tokio::test]
+    async fn call_success_wraps_structured_content() {
+        let manager = manager_with_double();
+        let result = manager.call("double", json!({"x": 21})).await.unwrap();
+        assert!(!result.is_error);
+        assert_eq!(result.structured_content, Some(json!({"result": 42})));
+        assert_eq!(result.content.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn call_unknown_tool_errors() {
+        let manager = ToolManager::new();
+        let err = manager.call("nope", json!({})).await.unwrap_err();
+        assert!(matches!(err, Error::Primitive(_)));
+    }
+
+    #[tokio::test]
+    async fn call_handler_error_becomes_runtime_error() {
+        let manager = manager_with_double();
+        // missing "x" makes the handler return Err -> Runtime
+        let err = manager.call("double", json!({})).await.unwrap_err();
+        assert!(matches!(err, Error::Runtime(_)));
+    }
+}

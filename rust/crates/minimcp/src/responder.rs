@@ -80,3 +80,84 @@ impl Responder {
             .await;
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::sync::{Arc, Mutex};
+
+    fn recording_responder() -> (Responder, Arc<Mutex<Vec<String>>>) {
+        let recorded: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+        let sink = recorded.clone();
+        let send: SendFn = Arc::new(move |msg: String| {
+            let sink = sink.clone();
+            Box::pin(async move {
+                sink.lock().unwrap().push(msg);
+            })
+        });
+        let limiter = TimeLimiter::new(std::time::Duration::from_secs(30));
+        (Responder::new(send, Some(limiter)), recorded)
+    }
+
+    #[tokio::test]
+    async fn send_notification_builds_jsonrpc() {
+        let (responder, recorded) = recording_responder();
+        responder
+            .send_notification("notifications/test", json!({"k": "v"}))
+            .await;
+
+        let messages = recorded.lock().unwrap();
+        assert_eq!(messages.len(), 1);
+        let parsed: Value = serde_json::from_str(&messages[0]).unwrap();
+        assert_eq!(parsed["jsonrpc"], "2.0");
+        assert_eq!(parsed["method"], "notifications/test");
+        assert_eq!(parsed["params"]["k"], "v");
+        assert!(parsed.get("id").is_none());
+    }
+
+    #[tokio::test]
+    async fn report_progress_full_params() {
+        let (responder, recorded) = recording_responder();
+        responder
+            .report_progress(
+                json!("tok-1"),
+                42.5,
+                Some(100.0),
+                Some("halfway".to_string()),
+            )
+            .await;
+
+        let messages = recorded.lock().unwrap();
+        let parsed: Value = serde_json::from_str(&messages[0]).unwrap();
+        assert_eq!(parsed["method"], "notifications/progress");
+        assert_eq!(parsed["params"]["progressToken"], "tok-1");
+        assert_eq!(parsed["params"]["progress"], 42.5);
+        assert_eq!(parsed["params"]["total"], 100.0);
+        assert_eq!(parsed["params"]["message"], "halfway");
+    }
+
+    #[tokio::test]
+    async fn report_progress_omits_optional_fields() {
+        let (responder, recorded) = recording_responder();
+        responder
+            .report_progress(json!("tok-2"), 10.0, None, None)
+            .await;
+
+        let messages = recorded.lock().unwrap();
+        let parsed: Value = serde_json::from_str(&messages[0]).unwrap();
+        assert_eq!(parsed["params"]["progress"], 10.0);
+        assert!(parsed["params"].get("total").is_none());
+        assert!(parsed["params"].get("message").is_none());
+    }
+
+    #[tokio::test]
+    async fn multiple_notifications_are_all_sent() {
+        let (responder, recorded) = recording_responder();
+        for i in 0..5 {
+            responder
+                .report_progress(json!("tok"), i as f64 * 10.0, None, None)
+                .await;
+        }
+        assert_eq!(recorded.lock().unwrap().len(), 5);
+    }
+}

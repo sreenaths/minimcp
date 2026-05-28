@@ -36,3 +36,27 @@ impl TimeLimiter {
         tracing::trace!("TimeLimiter::reset called (no-op in skeleton)");
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn stores_timeout() {
+        let limiter = TimeLimiter::new(Duration::from_secs(30));
+        assert_eq!(limiter.timeout(), Duration::from_secs(30));
+    }
+
+    #[test]
+    fn reset_does_not_panic() {
+        let limiter = TimeLimiter::new(Duration::from_millis(500));
+        limiter.reset();
+        limiter.reset();
+    }
+
+    #[test]
+    fn clone_preserves_timeout() {
+        let limiter = TimeLimiter::new(Duration::from_secs(5));
+        assert_eq!(limiter.clone().timeout(), Duration::from_secs(5));
+    }
+}
