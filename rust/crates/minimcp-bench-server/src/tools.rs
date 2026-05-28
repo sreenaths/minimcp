@@ -117,3 +117,60 @@ pub fn register(mcp: &MiniMCP<()>) {
         )
         .expect("register get_memory_usage");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn prime_factor_counts() {
+        // 12 = 2 * 2 * 3 -> 3 factors with repetition
+        assert_eq!(compute_all_prime_factors(12), 3);
+        // 100 = 2 * 2 * 5 * 5 -> 4
+        assert_eq!(compute_all_prime_factors(100), 4);
+        // 97 is prime -> 1
+        assert_eq!(compute_all_prime_factors(97), 1);
+    }
+
+    #[tokio::test]
+    async fn registers_all_benchmark_tools() {
+        let mcp = MiniMCP::<()>::new("bench");
+        register(&mcp);
+        let names: Vec<String> = mcp.tool.list().into_iter().map(|t| t.name).collect();
+        for expected in [
+            "compute_all_prime_factors",
+            "io_bound_compute_all_prime_factors",
+            "noop_tool",
+            "get_memory_usage",
+        ] {
+            assert!(
+                names.contains(&expected.to_string()),
+                "missing tool {expected}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn workload_tools_return_result_key() {
+        let mcp = MiniMCP::<()>::new("bench");
+        register(&mcp);
+
+        // The benchmark harness validates structuredContent["result"].
+        let sync = mcp
+            .tool
+            .call("compute_all_prime_factors", json!({"n": 12}))
+            .await
+            .unwrap();
+        assert_eq!(sync.structured_content.unwrap()["result"], 3);
+
+        let noop = mcp.tool.call("noop_tool", json!({"n": 7})).await.unwrap();
+        assert_eq!(noop.structured_content.unwrap()["result"], 7);
+
+        let io = mcp
+            .tool
+            .call("io_bound_compute_all_prime_factors", json!({"n": 12}))
+            .await
+            .unwrap();
+        assert_eq!(io.structured_content.unwrap()["result"], 3);
+    }
+}

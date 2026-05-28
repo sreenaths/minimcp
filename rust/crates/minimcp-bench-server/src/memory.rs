@@ -50,3 +50,19 @@ pub fn memory_usage() -> Value {
         "maxrss": current_maxrss_kb(),
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn memory_usage_has_harness_contract_fields() {
+        capture_baseline();
+        let usage = memory_usage();
+        // Fields read by benchmarks/core/mcp_server_benchmark.py::_get_memory_usage.
+        for field in ["baseline_rss", "current_rss", "baseline_maxrss", "maxrss"] {
+            assert!(usage.get(field).is_some(), "missing field {field}");
+            assert!(usage[field].is_number(), "field {field} should be numeric");
+        }
+    }
+}
