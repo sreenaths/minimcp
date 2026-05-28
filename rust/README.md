@@ -101,6 +101,8 @@ Build only the stdio transport (no HTTP / axum):
 cargo build -p minimcp --no-default-features
 ```
 
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the development workflow and the Rust pre-commit hooks (`cargo fmt`, `cargo clippy`, `cargo test`).
+
 ## Running the benchmark servers
 
 The Python benchmark harness in `../benchmarks/` is transport-agnostic: it drives any MCP server over stdio or HTTP using an MCP `ClientSession`. The Rust bench server slots in as another server under test.
