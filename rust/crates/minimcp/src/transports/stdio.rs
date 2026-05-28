@@ -86,3 +86,52 @@ async fn dispatch<S: Any + Send + Sync + 'static>(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::{json, Value};
+
+    fn server() -> Arc<MiniMCP<()>> {
+        let mcp = MiniMCP::<()>::new("stdio-test");
+        Arc::new(mcp)
+    }
+
+    #[tokio::test]
+    async fn dispatch_relays_response() {
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Message>();
+        let msg = json!({
+            "jsonrpc": "2.0", "id": 1, "method": "initialize",
+            "params": {"protocolVersion": "2025-06-18", "capabilities": {}, "clientInfo": {"name": "c", "version": "0"}}
+        })
+        .to_string();
+
+        dispatch(server(), msg, tx).await;
+
+        let response = rx.recv().await.expect("a response should be sent");
+        let parsed: Value = serde_json::from_str(&response).unwrap();
+        assert_eq!(parsed["id"], 1);
+        assert!(parsed.get("result").is_some());
+    }
+
+    #[tokio::test]
+    async fn dispatch_notification_sends_nothing() {
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Message>();
+        let msg = json!({"jsonrpc": "2.0", "method": "notifications/initialized"}).to_string();
+
+        dispatch(server(), msg, tx).await;
+
+        assert!(rx.try_recv().is_err(), "notifications produce no output");
+    }
+
+    #[tokio::test]
+    async fn dispatch_invalid_message_relays_error_response() {
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Message>();
+
+        dispatch(server(), "{not json".to_string(), tx).await;
+
+        let response = rx.recv().await.expect("an error response should be sent");
+        let parsed: Value = serde_json::from_str(&response).unwrap();
+        assert!(parsed.get("error").is_some());
+    }
+}

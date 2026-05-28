@@ -276,3 +276,281 @@ impl<S: Any + Send + Sync + 'static> MiniMCP<S> {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn parsed(outcome: Outcome) -> Value {
+        match outcome {
+            Outcome::Message(m) => serde_json::from_str(&m).unwrap(),
+            Outcome::NoMessage(_) => panic!("expected a message outcome"),
+        }
+    }
+
+    fn obj_schema() -> Value {
+        json!({"type": "object", "properties": {"x": {"type": "integer"}}})
+    }
+
+    fn server_with_double() -> MiniMCP<()> {
+        let mcp = MiniMCP::<()>::new("test-server").with_version("1.0.0");
+        mcp.tool
+            .add("double", None, obj_schema(), None, |args| async move {
+                let x = args["x"].as_i64().ok_or_else(|| "missing x".to_string())?;
+                Ok(json!({"result": x * 2}))
+            })
+            .unwrap();
+        mcp
+    }
+
+    fn init_message(version: &str) -> String {
+        json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "initialize",
+            "params": {"protocolVersion": version, "capabilities": {}, "clientInfo": {"name": "c", "version": "0"}}
+        })
+        .to_string()
+    }
+
+    // --- construction ---
+
+    #[test]
+    fn new_has_defaults() {
+        let mcp = MiniMCP::<()>::new("srv");
+        assert_eq!(mcp.name(), "srv");
+        assert_eq!(mcp.version(), "0.0.0");
+        assert_eq!(mcp.instructions(), None);
+    }
+
+    #[test]
+    fn builders_apply() {
+        let mcp = MiniMCP::<()>::new("srv")
+            .with_version("2.0")
+            .with_instructions("do things")
+            .with_max_concurrency(-1)
+            .with_idle_timeout(-1);
+        assert_eq!(mcp.version(), "2.0");
+        assert_eq!(mcp.instructions(), Some("do things"));
+        assert!(mcp.semaphore.is_none());
+        assert!(mcp.idle_timeout.is_none());
+    }
+
+    // --- initialize ---
+
+    #[tokio::test]
+    async fn initialize_negotiates_supported_version() {
+        let mcp = server_with_double();
+        let outcome = mcp
+            .handle(init_message("2025-06-18"), None, None)
+            .await
+            .unwrap();
+        let response = parsed(outcome);
+        assert_eq!(response["id"], 1);
+        assert_eq!(response["result"]["protocolVersion"], "2025-06-18");
+        assert_eq!(response["result"]["serverInfo"]["name"], "test-server");
+        assert_eq!(response["result"]["serverInfo"]["version"], "1.0.0");
+    }
+
+    #[tokio::test]
+    async fn initialize_falls_back_to_latest_for_unsupported_version() {
+        let mcp = server_with_double();
+        let outcome = mcp
+            .handle(init_message("bogus-version"), None, None)
+            .await
+            .unwrap();
+        let response = parsed(outcome);
+        assert_eq!(
+            response["result"]["protocolVersion"],
+            LATEST_PROTOCOL_VERSION
+        );
+    }
+
+    // --- ping / tools/list / tools/call ---
+
+    #[tokio::test]
+    async fn ping_returns_empty_result() {
+        let mcp = server_with_double();
+        let msg = json!({"jsonrpc": "2.0", "id": 7, "method": "ping"}).to_string();
+        let response = parsed(mcp.handle(msg, None, None).await.unwrap());
+        assert_eq!(response["id"], 7);
+        assert_eq!(response["result"], json!({}));
+    }
+
+    #[tokio::test]
+    async fn tools_list_returns_registered_tools() {
+        let mcp = server_with_double();
+        let msg = json!({"jsonrpc": "2.0", "id": 2, "method": "tools/list"}).to_string();
+        let response = parsed(mcp.handle(msg, None, None).await.unwrap());
+        let tools = response["result"]["tools"].as_array().unwrap();
+        assert_eq!(tools.len(), 1);
+        assert_eq!(tools[0]["name"], "double");
+    }
+
+    #[tokio::test]
+    async fn tools_call_returns_structured_result() {
+        let mcp = server_with_double();
+        let msg = json!({
+            "jsonrpc": "2.0", "id": 3, "method": "tools/call",
+            "params": {"name": "double", "arguments": {"x": 9}}
+        })
+        .to_string();
+        let response = parsed(mcp.handle(msg, None, None).await.unwrap());
+        assert_eq!(response["result"]["structuredContent"]["result"], 18);
+        assert_eq!(response["result"]["isError"], false);
+    }
+
+    #[tokio::test]
+    async fn tools_call_unknown_tool_is_invalid_params() {
+        let mcp = server_with_double();
+        let msg = json!({
+            "jsonrpc": "2.0", "id": 4, "method": "tools/call",
+            "params": {"name": "missing", "arguments": {}}
+        })
+        .to_string();
+        let response = parsed(mcp.handle(msg, None, None).await.unwrap());
+        assert_eq!(response["error"]["code"], codes::INVALID_PARAMS);
+    }
+
+    // --- errors / notifications ---
+
+    #[tokio::test]
+    async fn unknown_method_is_method_not_found() {
+        let mcp = server_with_double();
+        let msg = json!({"jsonrpc": "2.0", "id": 5, "method": "does/not/exist"}).to_string();
+        let response = parsed(mcp.handle(msg, None, None).await.unwrap());
+        assert_eq!(response["error"]["code"], codes::METHOD_NOT_FOUND);
+        assert_eq!(response["id"], 5);
+    }
+
+    #[tokio::test]
+    async fn invalid_json_returns_invalid_message_error() {
+        let mcp = server_with_double();
+        let err = mcp
+            .handle("{not json".to_string(), None, None)
+            .await
+            .unwrap_err();
+        let response: Value = serde_json::from_str(&err.response).unwrap();
+        assert_eq!(response["error"]["code"], codes::PARSE_ERROR);
+    }
+
+    #[tokio::test]
+    async fn missing_jsonrpc_returns_invalid_message_error() {
+        let mcp = server_with_double();
+        let msg = json!({"id": 1, "method": "test"}).to_string();
+        let err = mcp.handle(msg, None, None).await.unwrap_err();
+        let response: Value = serde_json::from_str(&err.response).unwrap();
+        assert_eq!(response["error"]["code"], codes::INVALID_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn notification_returns_no_message() {
+        let mcp = server_with_double();
+        let msg = json!({"jsonrpc": "2.0", "method": "notifications/initialized"}).to_string();
+        let outcome = mcp.handle(msg, None, None).await.unwrap();
+        assert_eq!(outcome, Outcome::NoMessage(NoMessage::Notification));
+    }
+
+    #[tokio::test]
+    async fn error_recovery_after_invalid_message() {
+        let mcp = server_with_double();
+        assert!(mcp.handle("{bad".to_string(), None, None).await.is_err());
+        // A valid request still works after an error.
+        let outcome = mcp
+            .handle(init_message("2025-06-18"), None, None)
+            .await
+            .unwrap();
+        assert_eq!(parsed(outcome)["id"], 1);
+    }
+
+    #[tokio::test]
+    async fn concurrent_requests_are_isolated() {
+        use std::sync::Arc;
+        let mcp = Arc::new(server_with_double());
+        let mut handles = Vec::new();
+        for i in 0..5i64 {
+            let mcp = mcp.clone();
+            handles.push(tokio::spawn(async move {
+                let msg = json!({
+                    "jsonrpc": "2.0", "id": i, "method": "tools/call",
+                    "params": {"name": "double", "arguments": {"x": i}}
+                })
+                .to_string();
+                let outcome = mcp.handle(msg, None, None).await.unwrap();
+                match outcome {
+                    Outcome::Message(m) => {
+                        let v: Value = serde_json::from_str(&m).unwrap();
+                        (
+                            v["id"].as_i64().unwrap(),
+                            v["result"]["structuredContent"]["result"].as_i64().unwrap(),
+                        )
+                    }
+                    _ => panic!("expected message"),
+                }
+            }));
+        }
+        for handle in handles {
+            let (id, result) = handle.await.unwrap();
+            assert_eq!(result, id * 2);
+        }
+    }
+
+    // --- scope reachable inside a handler via the request context ---
+
+    #[tokio::test]
+    async fn scope_is_reachable_inside_handler() {
+        let mcp: Arc<MiniMCP<String>> = {
+            let mcp = MiniMCP::<String>::new("scoped");
+            mcp.tool
+                .add("whoami", None, obj_schema(), None, {
+                    let ctx = mcp_context_handle();
+                    move |_args| {
+                        let scope = ctx.get_scope().map(|s| (*s).clone());
+                        async move { Ok(json!({"result": scope.unwrap_or_default()})) }
+                    }
+                })
+                .unwrap();
+            Arc::new(mcp)
+        };
+
+        let msg = json!({
+            "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+            "params": {"name": "whoami", "arguments": {}}
+        })
+        .to_string();
+        let outcome = mcp
+            .handle(msg, None, Some(Arc::new("alice".to_string())))
+            .await
+            .unwrap();
+        let response = parsed(outcome);
+        assert_eq!(response["result"]["structuredContent"]["result"], "alice");
+    }
+
+    // Helper to grab a context accessor for the scope test above.
+    fn mcp_context_handle() -> ContextManager<String> {
+        ContextManager::<String>::new()
+    }
+
+    // --- idle timeout (private field access) ---
+
+    #[tokio::test]
+    async fn idle_timeout_cancels_slow_handler() {
+        let mut mcp = MiniMCP::<()>::new("timeout-srv");
+        mcp.idle_timeout = Some(Duration::from_millis(50));
+        mcp.tool
+            .add("slow", None, obj_schema(), None, |_| async move {
+                tokio::time::sleep(Duration::from_millis(500)).await;
+                Ok(json!({"result": 1}))
+            })
+            .unwrap();
+
+        let msg = json!({
+            "jsonrpc": "2.0", "id": 1, "method": "tools/call",
+            "params": {"name": "slow", "arguments": {}}
+        })
+        .to_string();
+        let response = parsed(mcp.handle(msg, None, None).await.unwrap());
+        assert_eq!(response["error"]["code"], codes::INTERNAL_ERROR);
+    }
+}
