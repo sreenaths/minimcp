@@ -86,6 +86,12 @@ pre-commit install --config rust/.pre-commit-config.yaml
 available via the Python dev environment (`uv run pre-commit ...`) or any global
 install.
 
+## Continuous Integration
+
+The same three checks run in CI on every pull request that touches `rust/`, via
+`.github/workflows/rust.yml` (`cargo fmt --check`, `cargo clippy -D warnings`,
+`cargo test`). Running the pre-commit hooks locally keeps you green in CI.
+
 ## Code Style
 
 - Format with `cargo fmt` (rustfmt defaults).
