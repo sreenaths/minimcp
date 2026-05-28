@@ -59,6 +59,42 @@ cargo clippy --all-targets
 cargo fmt --check
 ```
 
+## Tests
+
+Tests are ported from the Python `tests/` suite, adapted to the Rust API. Unit
+tests live in inline `#[cfg(test)] mod tests` blocks next to the code they
+cover; end-to-end tests live in `crates/minimcp/tests/end_to_end.rs`.
+
+| Python test file | Rust location |
+|---|---|
+| `tests/unit/utils/test_json_rpc.py` | `src/json_rpc.rs` |
+| `tests/unit/test_minimcp.py` | `src/server.rs` |
+| `tests/unit/managers/test_tool_manager.py` | `src/managers/tool.rs` |
+| `tests/unit/managers/test_context_manager.py` | `src/context.rs` |
+| `tests/unit/test_responder.py` | `src/responder.rs` |
+| `tests/unit/test_time_limiter.py` | `src/time_limiter.rs` |
+| `tests/unit/transports/test_stdio_transport.py` | `src/transports/stdio.rs` |
+| `tests/unit/transports/test_http_transport.py` | `src/transports/http.rs` |
+| `tests/integration/*` | `crates/minimcp/tests/end_to_end.rs` |
+| benchmark tools / memory contract | `minimcp-bench-server/src/{tools,memory}.rs` |
+
+### Not ported (feature not yet implemented)
+
+These Python tests have no Rust counterpart because the corresponding behavior
+is still on the TODO list below. They should be added as those features land:
+
+- `tests/unit/utils/test_mcp_func.py` and the Pydantic schema-generation / type-coercion
+  parts of `test_tool_manager.py` (no `MCPFunc` equivalent yet; Rust handlers take
+  raw JSON and return structured JSON).
+- HTTP header validation tests in `test_http_transport.py` / `test_base_http_transport.py`
+  (Accept, Content-Type, `MCP-Protocol-Version`) — the Rust HTTP transport does not
+  validate headers yet.
+- `test_prompt_manager.py`, `test_resource_manager.py` — no prompt/resource managers yet.
+- `test_streamable_http_transport.py` and `test_streamable_http_server.py` — no streamable
+  HTTP/SSE transport yet.
+- Stack-trace / error-metadata assertions in `test_minimcp.py` — the Rust error payload is
+  minimal (`code` + `message`) and omits `errorType`/`errorModule`/`isoTimestamp`/`stackTrace`.
+
 Build only the stdio transport (no HTTP / axum):
 
 ```bash
@@ -89,9 +125,10 @@ Add a `ServerConfig` for the Rust server alongside the existing ones in `benchma
 
 ## Status / TODO
 
-- [ ] Prompt and resource managers.
-- [ ] Streamable HTTP (SSE) transport.
-- [ ] Automatic JSON Schema generation from handler types (parity with `MCPFunc` + Pydantic).
+- [ ] Prompt and resource managers (+ their tests).
+- [ ] Streamable HTTP (SSE) transport (+ its tests).
+- [ ] Automatic JSON Schema generation from handler types (parity with `MCPFunc` + Pydantic), plus schema/validation tests.
+- [ ] HTTP header validation (Accept, Content-Type, `MCP-Protocol-Version`) and its tests.
 - [ ] Wire `TimeLimiter::reset` to the active timeout deadline.
 - [ ] Client notification handler dispatch.
 - [ ] `ServerConfig` entries in the Python benchmark harness for the Rust server.
